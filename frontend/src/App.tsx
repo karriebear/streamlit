@@ -141,11 +141,13 @@ export class App extends PureComponent<Props, State> {
     this.widgetMgr = new WidgetStateManager((msg: IBackMsg) => {
       this.sendBackMsg(new BackMsg(msg))
     })
-    this.uploadClient = new FileUploadClient(() => {
-      return this.connectionManager
-        ? this.connectionManager.getBaseUriParts()
-        : undefined
-    }, true)
+    this.uploadClient = new FileUploadClient(
+      () =>
+        this.connectionManager
+          ? this.connectionManager.getBaseUriParts()
+          : undefined,
+      true
+    )
     this.componentRegistry = new ComponentRegistry(() => {
       return this.connectionManager
         ? this.connectionManager.getBaseUriParts()

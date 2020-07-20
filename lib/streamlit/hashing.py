@@ -365,6 +365,9 @@ class _CodeHasher:
         elif obj is False:
             return b"0"
 
+        elif type_util.is_type(obj, "UploadedFile"):
+            return "TODO"
+
         elif type_util.is_type(obj, "pandas.core.frame.DataFrame") or type_util.is_type(
             obj, "pandas.core.series.Series"
         ):

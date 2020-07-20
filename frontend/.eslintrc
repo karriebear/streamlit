@@ -33,6 +33,9 @@
   // Place to specify ESLint rules.
   // Can be used to overwrite rules specified from the extended configs
   "rules": {
+    // Always have comma dangling in multiline functions
+    // Missing commas causes issues with new Class constructors
+    "comma-dangle": ["error", "always-multiline" ]
     // Use `const` or `let` instead of `var`
     "no-var": "error",
     // We don't use PropTypes

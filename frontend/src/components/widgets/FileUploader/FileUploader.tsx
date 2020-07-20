@@ -16,14 +16,18 @@
  */
 
 import axios, { CancelTokenSource } from "axios"
+import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
 import { FileUploader as FileUploaderBaseui } from "baseui/file-uploader"
+import Dropzone, { FileRejection } from "react-dropzone"
 import Icon from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
 import { FileUploadClient } from "lib/FileUploadClient"
+import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 import { fileUploaderOverrides } from "lib/widgetTheme"
 import React from "react"
-import { Button, Spinner } from "reactstrap"
+import UIButton from "components/widgets/Button/UIButton"
+import UploadedFile from "./UploadedFile"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -37,19 +41,21 @@ export interface Props {
 interface State {
   status: "READY" | "UPLOADING" | "UPLOADED" | "ERROR"
   errorMessage?: string
-  acceptedFiles: File[]
+  files: ExtendedFile[]
+  maxSizeBytes: number
 }
 
 class FileUploader extends React.PureComponent<Props, State> {
-  /** Used to cancel the current upload, if there is one. */
   private currentUploadCanceller?: CancelTokenSource
-
   public constructor(props: Props) {
     super(props)
+    const maxMbs = props.element.get("maxUploadSizeMb")
+
     this.state = {
       status: "READY",
       errorMessage: undefined,
-      acceptedFiles: [],
+      files: [],
+      maxSizeBytes: maxMbs * 1024 * 1024,
     }
   }
 
@@ -62,62 +68,61 @@ class FileUploader extends React.PureComponent<Props, State> {
     if (prevProps.disabled !== this.props.disabled && this.props.disabled) {
       this.reset()
     }
+
+    const currentMaxSize = this.props.element.get("maxUploadSizeMb")
+    if (prevProps.element.get("maxUploadSizeMb") !== currentMaxSize) {
+      this.setState({ maxSizeBytes: currentMaxSize * 1024 * 1024 })
+    }
   }
 
-  private dropHandler = (
-    acceptedFiles: File[],
-    rejectedFiles: File[],
-    event: React.SyntheticEvent<HTMLElement>
-  ): void => {
+  private handleFile = (file: ExtendedFile, index: number): void => {
+    // Add an unique ID to each file for server and client to sync on
+    file.id = `${index}${new Date().getTime()}`
+
+    // Validate size
     const { element } = this.props
-    const maxSizeMb = element.get("maxUploadSizeMb")
+    file.cancelToken = axios.CancelToken.source()
+    this.uploadFile(file)
 
-    if (rejectedFiles.length > 0) {
-      // TODO: Tell user which files *are* allowed.
-      const errorMessage = `${rejectedFiles[0].type} files are not allowed`
-      this.setState({
-        status: "ERROR",
-        errorMessage: errorMessage,
-      })
+    this.setState(state => ({ files: state.files.concat(file) }))
+  }
 
-      return
-    }
-
-    // validate file sizes
-    const maxSizeBytes = maxSizeMb * 1024 * 1024
-    for (const file of acceptedFiles) {
-      if (file.size > maxSizeBytes) {
-        const errorMessage = `The max file size allowed is ${maxSizeMb}MB`
-        this.setState({
-          status: "ERROR",
-          errorMessage: errorMessage,
-        })
-
-        return
-      }
-    }
-
-    this.setState({ acceptedFiles, status: "UPLOADING" })
-
-    // Upload all the files
-    this.currentUploadCanceller = axios.CancelToken.source()
+  private uploadFile = (file: ExtendedFile): void => {
     this.props.uploadClient
       .uploadFiles(
         this.props.element.get("id"),
-        acceptedFiles,
-        undefined,
-        this.currentUploadCanceller.token
+        [file],
+        e => this.onUploadProgress(e, file),
+        file.cancelToken
+          ? file.cancelToken.token
+          : axios.CancelToken.source().token
       )
       .then(() => {
-        this.currentUploadCanceller = undefined
-        this.setState({ status: "UPLOADED" })
+        this.setState(state => {
+          const files = state.files.map(existingFile => {
+            if (file.id === existingFile.id) {
+              delete file.progress
+              delete file.cancelToken
+              file.status = "UPLOADED"
+              return file
+            }
+            return existingFile
+          })
+          return { files }
+        })
       })
       .catch(err => {
         if (axios.isCancel(err)) {
           // If this was a cancel error, we don't show the user an error -
           // the cancellation was in response to an action they took
-          this.currentUploadCanceller = undefined
-          this.setState({ status: "UPLOADED" })
+          const files = this.state.files.map(existingFile => {
+            if (file.id === existingFile.id) {
+              // status: "UPLOADED",
+              return file
+            }
+            return existingFile
+          })
+          this.setState({ files })
         } else {
           this.setState({
             status: "ERROR",
@@ -127,39 +132,134 @@ class FileUploader extends React.PureComponent<Props, State> {
       })
   }
 
+  private dropHandler = (
+    acceptedFiles: ExtendedFile[],
+    rejectedFiles: FileRejection[]
+  ): void => {
+    const { element } = this.props
+    const multipleFiles = element.get("multipleFiles")
+    const uploadedFiles: ExtendedFile[] = []
+
+    if (!multipleFiles && this.state.files.length) {
+      // Only one file is allowed. Delete existing file.
+      this.delete(null, this.state.files[0].id)
+    }
+
+    if (rejectedFiles.length > 1 && !multipleFiles) {
+      const firstFile: FileRejection | undefined = rejectedFiles.shift()
+      if (firstFile) {
+        this.handleFile(firstFile.file, acceptedFiles.length)
+      }
+      rejectedFiles.forEach(rejectedFile =>
+        uploadedFiles.push(
+          Object.assign(rejectedFile.file, {
+            status: "ERROR",
+            errorMessage: this.getErrorMessage(
+              rejectedFile.errors[0].code,
+              rejectedFile.file
+            ),
+          })
+        )
+      )
+    } else {
+      rejectedFiles.forEach(rejectedFile =>
+        uploadedFiles.push(
+          Object.assign(rejectedFile.file, {
+            status: "ERROR",
+            errorMessage: this.getErrorMessage(
+              rejectedFile.errors[0].code,
+              rejectedFile.file
+            ),
+          })
+        )
+      )
+    }
+
+    if (uploadedFiles.length) {
+      this.setState({
+        files: this.state.files.concat(uploadedFiles),
+      })
+    }
+
+    acceptedFiles.map(this.handleFile)
+  }
+
+  private getErrorMessage = (
+    errorCode: string,
+    file: ExtendedFile
+  ): string => {
+    switch (errorCode) {
+      case "file-too-large":
+        return `File must be ${getSizeDisplay(
+          this.state.maxSizeBytes,
+          "b"
+        )} or smaller.`
+      case "file-invalid-type":
+        return `${file.type} files are not allowed.`
+      case "file-too-small":
+        // This should not fire.
+        return `File size is too small.`
+      case "too-many-files":
+        return "Only one file is allowed."
+      default:
+        return "Unexpected error. Please try again."
+    }
+  }
+
+  private delete = (
+    event: React.SyntheticEvent<HTMLElement> | null,
+    id?: string
+  ): void => {
+    const fileId = event ? event.currentTarget.id : id
+    if (fileId && this.state.files.find(file => file.id === fileId)) {
+      // File found, proceed to delete HTTP call.
+    } else {
+      const errorMessage = "File not found. Please try again."
+      this.setState({
+        status: "ERROR",
+        errorMessage: errorMessage,
+      })
+
+      return
+    }
+
+    this.props.uploadClient
+      .delete(this.props.element.get("id"), fileId)
+      .then(() => {
+        const filteredFiles = this.state.files.filter(
+          file => file.id !== fileId
+        )
+        this.setState({
+          status: filteredFiles.length ? "UPLOADED" : "READY",
+          errorMessage: undefined,
+          files: filteredFiles,
+        })
+      })
+  }
+
   private reset = (): void => {
     this.setState({
       status: "READY",
       errorMessage: undefined,
-      acceptedFiles: [],
+      files: [],
     })
   }
 
-  private renderErrorMessage = (): React.ReactNode => {
-    const { errorMessage } = this.state
-    return (
-      <div className="uploadStatus uploadError">
-        <span className="body">
-          <Icon className="icon" type="warning" /> {errorMessage}
-        </span>
-        <Button color="link" onClick={this.reset}>
-          OK
-        </Button>
-      </div>
+  private onUploadProgress = (
+    progressEvent: ProgressEvent,
+    file: ExtendedFile
+  ): void => {
+    file.progress = Math.round(
+      (progressEvent.loaded * 100) / progressEvent.total
     )
-  }
 
-  private renderUploadingMessage = (): React.ReactNode => {
-    return (
-      <div className="uploadStatus uploadProgress">
-        <span className="body">
-          <Spinner color="secondary" size="sm" /> Uploading...
-        </span>
-        <Button color="link" onClick={this.cancelCurrentUpload}>
-          Cancel
-        </Button>
-      </div>
-    )
+    this.setState(state => {
+      const files = state.files.map(uploadingFile =>
+        uploadingFile.id === file.id ? file : uploadingFile
+      )
+
+      return { files }
+    })
   }
 
   private cancelCurrentUpload = (): void => {
@@ -169,75 +269,66 @@ class FileUploader extends React.PureComponent<Props, State> {
     }
   }
 
-  private renderFileUploader = (): React.ReactNode => {
-    const { status, errorMessage } = this.state
+  public render = (): React.ReactNode => {
+    const { status, errorMessage, files } = this.state
     const { element } = this.props
+    const label: string = element.get("label")
+    const multipleFiles: boolean = element.get("multipleFiles")
     const accept: string[] = element
       .get("type")
       .toArray()
       .map((value: string) => "." + value)
 
-    const multipleFiles: boolean = element.get("multipleFiles")
-
-    // Hack to hide drag-and-drop message and leave space for filename.
-    let overrides: any = fileUploaderOverrides
-    let filenameText = ""
-
-    if (status === "UPLOADED") {
-      overrides = { ...overrides }
-      overrides.ContentMessage = { ...overrides.ContentMessage }
-      overrides.ContentMessage.style = { ...overrides.ContentMessage.style }
-      overrides.ContentMessage.style.visibility = "hidden"
-      overrides.ContentMessage.style.overflow = "hidden"
-      overrides.ContentMessage.style.height = "0.625rem" // half of lineHeightTight
-
-      overrides.ContentSeparator = { ...overrides.ContentSeparator }
-      overrides.ContentSeparator.style.visibility = "hidden"
-
-      if (multipleFiles) {
-        filenameText = this.state.acceptedFiles
-          .map(file => file.name)
-          .join(", ")
-      } else {
-        filenameText = this.state.acceptedFiles[0].name
-      }
-    }
-
-    return (
-      <>
-        {status === "UPLOADED" && (
-          <div className="uploadOverlay uploadDone">
-            <span className="body">{filenameText}</span>
-          </div>
-        )}
-        <FileUploaderBaseui
-          onDrop={this.dropHandler}
-          errorMessage={errorMessage}
-          accept={accept.length === 0 ? undefined : accept}
-          disabled={this.props.disabled}
-          overrides={overrides}
-          multiple={multipleFiles}
-        />
-      </>
-    )
-  }
-
-  public render = (): React.ReactNode => {
-    const { status } = this.state
-    const { element } = this.props
-    const label: string = element.get("label")
-
-    // The BaseWeb file uploader is not particularly configurable, so we hack it here by replacing
-    // the uploader with our own UI where appropriate.
     return (
       <div className="Widget stFileUploader">
         <label>{label}</label>
-
-        {status === "ERROR"
-          ? this.renderErrorMessage()
-          : status === "UPLOADING"
-          ? this.renderUploadingMessage()
-          : this.renderFileUploader()}
+        {multipleFiles || files.length === 0 ? (
+          <Dropzone
+            onDrop={this.dropHandler}
+            multiple={multipleFiles}
+            accept={accept.length === 0 ? undefined : accept}
+            maxSize={this.state.maxSizeBytes}
+            disabled={this.props.disabled}
+          >
+            {({ getRootProps, getInputProps }) => (
+              <section {...getRootProps()} className="fileUploadDropzone">
+                <div className="d-flex align-items-center">
+                  <input {...getInputProps()} />
+                  <div className="mr-auto d-none d-md-flex align-items-center">
+                    <Icon
+                      className="icon icon-md text-secondary"
+                      type="cloud-upload"
+                    />{" "}
+                    <div className="ml-3 d-flex flex-column">
+                      <span>
+                        Drag and drop file{multipleFiles ? "s" : ""} here
+                      </span>
+                      <small>
+                        {getSizeDisplay(this.state.maxSizeBytes, "b", 0)}
+                        {accept.length
+                          ? ` • ${accept
+                              .join(", ")
+                              .replace(".", "")
+                              .toUpperCase()}`
+                          : null}
+                      </small>
+                    </div>
+                  </div>
+                  <UIButton label="Browse files" />
+                </div>
+              </section>
+            )}
+          </Dropzone>
+        ) : null}
+        <div className="uploadedFiles row p-3">
+          {files.map((file, index) => (
+            <UploadedFile
+              file={file}
+              progress={file.progress}
+              onDelete={this.delete}
+            />
+          ))}
+        </div>
       </div>
     )
   }
