@@ -39,6 +39,7 @@ from streamlit import type_util
 from streamlit.errors import StreamlitAPIException, MarkdownFormattedException
 from streamlit.folder_black_list import FolderBlackList
 from streamlit.logger import get_logger
+from streamlit.UploadedFileManager import UploadedFile
 
 _LOGGER = get_logger(__name__)
 
@@ -365,9 +366,6 @@ class _CodeHasher:
         elif obj is False:
             return b"0"
 
-        elif type_util.is_type(obj, "UploadedFile"):
-            return "TODO"
-
         elif type_util.is_type(obj, "pandas.core.frame.DataFrame") or type_util.is_type(
             obj, "pandas.core.series.Series"
         ):
@@ -409,6 +407,18 @@ class _CodeHasher:
         elif type_util.is_type(obj, "builtins.getset_descriptor"):
             return obj.__qualname__.encode()
 
+        elif isinstance(obj, Pattern):
+            return self.to_bytes([obj.pattern, obj.flags])
+
+        elif isinstance(obj, io.StringIO) or isinstance(obj, io.BytesIO) or isinstance(obj, UploadedFile):
+            # Hash in-memory StringIO/BytesIO by their full contents
+            # and seek position.
+            print("i am hashing")
+            h = hashlib.new("md5")
+            self.update(h, obj.tell())
+            self.update(h, obj.getvalue())
+            return h.digest()
+
         elif hasattr(obj, "name") and (
             isinstance(obj, io.IOBase)
             # Handle temporary files used during testing
@@ -424,17 +434,6 @@ class _CodeHasher:
             self.update(h, obj_name)
             self.update(h, os.path.getmtime(obj_name))
             self.update(h, obj.tell())
-            return h.digest()
-
-        elif isinstance(obj, Pattern):
-            return self.to_bytes([obj.pattern, obj.flags])
-
-        elif isinstance(obj, io.StringIO) or isinstance(obj, io.BytesIO):
-            # Hash in-memory StringIO/BytesIO by their full contents
-            # and seek position.
-            h = hashlib.new("md5")
-            self.update(h, obj.tell())
-            self.update(h, obj.getvalue())
             return h.digest()
 
         elif any(
