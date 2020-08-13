@@ -277,7 +277,7 @@ class FileUploader extends React.PureComponent<Props, State> {
     const accept: string[] = element
       .get("type")
       .toArray()
-      .map((value: string) => "." + value)
+      .map((value: string) => `.${value}`)
 
     return (
       <div className="Widget stFileUploader">

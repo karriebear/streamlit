@@ -120,6 +120,18 @@ pycoverage:
 			--cov-report=term-missing tests/ \
 			$(PYTHON_MODULES)
 
+.PHONY: pycoverage_html
+# Generate HTML report of Python test coverage.
+pycoverage_html:
+	# testing + code coverage
+	cd lib; \
+		PYTHONPATH=. \
+		pytest -v \
+			--junitxml=test-reports/pytest/junit.xml \
+			-l $(foreach dir,$(PYTHON_MODULES),--cov=$(dir)) \
+			--cov-report=html tests/ \
+			$(PYTHON_MODULES)
+
 .PHONY: mypy
 # Run Mypy static type checker.
 mypy:
@@ -294,7 +306,7 @@ jscoverage:
 .PHONY: e2etest
 # Run E2E tests.
 e2etest:
-	./scripts/run_e2e_tests.sh
+	./scripts/run_e2e_tests.py
 
 .PHONY: loc
 # Counts the number of lines of code in the project

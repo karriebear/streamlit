@@ -15,7 +15,7 @@
 """Streamlit Unit test."""
 from io import BytesIO
 
-from mock import patch
+from unittest.mock import patch
 import json
 import os
 import io
@@ -35,9 +35,9 @@ from streamlit.proto.Balloons_pb2 import Balloons
 
 from streamlit.proto.Alert_pb2 import Alert
 
-from streamlit.MediaFileManager import media_file_manager
-from streamlit.MediaFileManager import _calculate_file_id
-from streamlit.MediaFileManager import STATIC_MEDIA_ENDPOINT
+from streamlit.media_file_manager import media_file_manager
+from streamlit.media_file_manager import _calculate_file_id
+from streamlit.media_file_manager import STATIC_MEDIA_ENDPOINT
 
 from tests import testutil
 import streamlit as st
@@ -193,7 +193,7 @@ class StreamlitAPITest(testutil.DeltaGeneratorTestCase):
 
     def test_st_audio_options(self):
         """Test st.audio with options."""
-        from streamlit.MediaFileManager import _calculate_file_id
+        from streamlit.media_file_manager import _calculate_file_id
 
         fake_audio_data = "\x11\x22\x33\x44\x55\x66".encode("utf-8")
         st.audio(fake_audio_data, format="audio/mp3", start_time=10)
@@ -311,7 +311,7 @@ class StreamlitAPITest(testutil.DeltaGeneratorTestCase):
         """Test st.image with PIL image."""
         img = Image.new("RGB", (64, 64), color="red")
 
-        st.image(img, caption="some caption", width=100, format="PNG")
+        st.image(img, caption="some caption", width=100, output_format="PNG")
 
         el = self.get_delta_from_queue().new_element
         self.assertEqual(el.imgs.width, 100)
@@ -341,7 +341,7 @@ class StreamlitAPITest(testutil.DeltaGeneratorTestCase):
             width=200,
             use_column_width=True,
             clamp=True,
-            format="PNG",
+            output_format="PNG",
         )
 
         el = self.get_delta_from_queue().new_element
@@ -684,7 +684,7 @@ class StreamlitAPITest(testutil.DeltaGeneratorTestCase):
     def test_st_video_options(self):
         """Test st.video with options."""
 
-        from streamlit.MediaFileManager import _calculate_file_id
+        from streamlit.media_file_manager import _calculate_file_id
 
         fake_video_data = "\x11\x22\x33\x44\x55\x66".encode("utf-8")
         st.video(fake_video_data, format="video/mp4", start_time=10)

@@ -24,7 +24,6 @@ import inspect
 import io
 import os
 import pickle
-import re
 import sys
 import tempfile
 import textwrap
@@ -60,6 +59,20 @@ _CYCLE_PLACEHOLDER = b"streamlit-57R34ML17-hesamagicalponyflyingthroughthesky-CY
 
 
 _FOLDER_BLACK_LIST = FolderBlackList(config.get_option("server.folderWatchBlacklist"))
+
+
+# FFI objects (objects that interface with C libraries) can be any of these types:
+_FFI_TYPE_NAMES = [
+    "_cffi_backend.FFI",
+    "builtins.CompiledFFI",
+]
+
+# KERAS objects can be any of these types:
+_KERAS_TYPE_NAMES = [
+    "keras.engine.training.Model",
+    "tensorflow.python.keras.engine.training.Model",
+    "tensorflow.python.keras.engine.functional.Functional",
+]
 
 
 Context = collections.namedtuple("Context", ["globals", "cells", "varnames"])
@@ -396,7 +409,7 @@ class _CodeHasher:
         elif inspect.isbuiltin(obj):
             return obj.__name__.encode()
 
-        elif type_util.is_type(obj, "builtins.CompiledFFI"):
+        elif any(type_util.is_type(obj, typename) for typename in _FFI_TYPE_NAMES):
             return self.to_bytes(None)
 
         elif type_util.is_type(obj, "builtins.mappingproxy") or type_util.is_type(
@@ -410,7 +423,11 @@ class _CodeHasher:
         elif isinstance(obj, Pattern):
             return self.to_bytes([obj.pattern, obj.flags])
 
-        elif isinstance(obj, io.StringIO) or isinstance(obj, io.BytesIO) or isinstance(obj, UploadedFile):
+        elif (
+            isinstance(obj, io.StringIO)
+            or isinstance(obj, io.BytesIO)
+            or isinstance(obj, UploadedFile)
+        ):
             # Hash in-memory StringIO/BytesIO by their full contents
             # and seek position.
             print("i am hashing")
@@ -499,10 +516,7 @@ class _CodeHasher:
         ):
             return self.to_bytes([obj.detach().numpy(), obj.grad])
 
-        elif type_util.is_type(obj, "keras.engine.training.Model"):
-            return self.to_bytes(id(obj))
-
-        elif type_util.is_type(obj, "tensorflow.python.keras.engine.training.Model"):
+        elif any(type_util.is_type(obj, typename) for typename in _KERAS_TYPE_NAMES):
             return self.to_bytes(id(obj))
 
         elif type_util.is_type(
