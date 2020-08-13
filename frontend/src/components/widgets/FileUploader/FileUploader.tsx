@@ -328,6 +328,19 @@ class FileUploader extends React.PureComponent<Props, State> {
               onDelete={this.delete}
             />
           ))}
+          {files.length > 4 ? (
+            <div className="col-12 d-flex align-items-center justify-content-between pb-1 mb-1">
+              <small className="text-secondary">
+                {`Showing ${Math.min(files.length, 4)} of ${
+                  files.length
+                } Files`}
+              </small>
+              <div className="d-flex align-items-center justify-content-center text-secondary">
+                <Icon className="icon icon-xs" type="chevron-left" />
+                <Icon className="icon icon-xs ml-3" type="chevron-right" />
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     )
