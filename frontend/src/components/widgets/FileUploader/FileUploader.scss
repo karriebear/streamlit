@@ -16,9 +16,36 @@
 
 @import "src/assets/css/core";
 
+.sidebar .stFileUploader {
+  .fileUploadDropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background: $white;
+
+    .stButton {
+      margin-top: $spacer;
+    }
+
+    .fileUploaderIcon {
+      display: none;
+    }
+
+    .uploadedFile {
+      max-width: inherit;
+      flex: 1;
+    }
+  }
+}
+
 .stFileUploader {
   small {
     color: $gray-dark;
+  }
+
+  .fileUploaderIcon {
+    color: $secondary;
+    margin-right: $spacer;
   }
 
   .fileUploadDropzone {
@@ -26,6 +53,8 @@
     border-radius: $border-radius;
     padding: $spacer;
     padding-right: 2 * $spacer;
+    display: flex;
+    align-items: center;
   }
 
   .fileIcon {

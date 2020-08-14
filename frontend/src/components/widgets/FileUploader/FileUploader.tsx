@@ -17,8 +17,6 @@
 
 import React from "react"
 import axios, { CancelTokenSource } from "axios"
-import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
-import { FileUploader as FileUploaderBaseui } from "baseui/file-uploader"
 import Dropzone, { FileRejection } from "react-dropzone"
 import Icon from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
@@ -293,30 +291,28 @@ class FileUploader extends React.PureComponent<Props, State> {
           >
             {({ getRootProps, getInputProps }) => (
               <section {...getRootProps()} className="fileUploadDropzone">
-                <div className="d-flex align-items-center">
-                  <input {...getInputProps()} />
-                  <div className="mr-auto d-none d-md-flex align-items-center">
-                    <Icon
-                      className="icon icon-md text-secondary"
-                      type="cloud-upload"
-                    />{" "}
-                    <div className="ml-3 d-flex flex-column">
-                      <span>
-                        Drag and drop file{multipleFiles ? "s" : ""} here
-                      </span>
-                      <small>
-                        {getSizeDisplay(this.state.maxSizeBytes, "b", 0)}
-                        {accept.length
-                          ? ` • ${accept
-                              .join(", ")
-                              .replace(".", "")
-                              .toUpperCase()}`
-                          : null}
-                      </small>
-                    </div>
+                <input {...getInputProps()} />
+                <div className="mr-auto d-none d-md-flex align-items-center">
+                  <Icon
+                    className="icon fileUploaderIcon icon-md"
+                    type="cloud-upload"
+                  />{" "}
+                  <div className="d-flex flex-column">
+                    <span>
+                      Drag and drop file{multipleFiles ? "s" : ""} here
+                    </span>
+                    <small>
+                      {getSizeDisplay(this.state.maxSizeBytes, "b", 0)}
+                      {accept.length
+                        ? ` • ${accept
+                            .join(", ")
+                            .replace(".", "")
+                            .toUpperCase()}`
+                        : null}
+                    </small>
                   </div>
-                  <UIButton label="Browse files" />
                 </div>
+                <UIButton label="Browse files" />
               </section>
             )}
           </Dropzone>

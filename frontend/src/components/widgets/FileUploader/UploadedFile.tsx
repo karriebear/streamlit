@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-import axios, { CancelTokenSource } from "axios"
-import { useStyletron } from "baseui"
+import { CancelTokenSource } from "axios"
 import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
 import Icon from "components/shared/Icon"
-import { Map as ImmutableMap } from "immutable"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
-import { WidgetStateManager } from "lib/WidgetStateManager"
 import React from "react"
 import { Button } from "reactstrap"
 import "./FileUploader.scss"
@@ -95,7 +92,7 @@ class UploadedFile extends React.PureComponent<Props> {
   }
 
   public render = (): React.ReactNode => {
-    const { file, onDelete, progress } = this.props
+    const { file, onDelete } = this.props
 
     return (
       <div className="uploadedFile col-md-6">
