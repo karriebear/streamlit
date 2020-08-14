@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import React from "react"
 import axios, { CancelTokenSource } from "axios"
 import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
 import { FileUploader as FileUploaderBaseui } from "baseui/file-uploader"
@@ -24,10 +25,10 @@ import { Map as ImmutableMap } from "immutable"
 import { FileUploadClient } from "lib/FileUploadClient"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import { WidgetStateManager } from "lib/WidgetStateManager"
-import { fileUploaderOverrides } from "lib/widgetTheme"
-import React from "react"
+import { fileUploaderOverrides } from "lib/widgetTheme" // deprecate
+
 import UIButton from "components/widgets/Button/UIButton"
-import UploadedFile from "./UploadedFile"
+import UploadedFiles from "./UploadedFiles"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -321,26 +322,12 @@ class FileUploader extends React.PureComponent<Props, State> {
           </Dropzone>
         ) : null}
         <div className="uploadedFiles row p-3">
-          {files.map((file, index) => (
-            <UploadedFile
-              file={file}
-              progress={file.progress}
-              onDelete={this.delete}
-            />
-          ))}
-          {files.length > 4 ? (
-            <div className="col-12 d-flex align-items-center justify-content-between pb-1 mb-1">
-              <small className="text-secondary">
-                {`Showing ${Math.min(files.length, 4)} of ${
-                  files.length
-                } Files`}
-              </small>
-              <div className="d-flex align-items-center justify-content-center text-secondary">
-                <Icon className="icon icon-xs" type="chevron-left" />
-                <Icon className="icon icon-xs ml-3" type="chevron-right" />
-              </div>
-            </div>
-          ) : null}
+          <UploadedFiles
+            items={files}
+            pageSize={4}
+            itemType="files"
+            onDelete={this.delete}
+          />
         </div>
       </div>
     )
