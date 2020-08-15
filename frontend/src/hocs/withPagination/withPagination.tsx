@@ -81,7 +81,6 @@ const withPagination = (
 
       return (
         <>
-          <WrappedComponent items={paginatedItems} {...props} />
           {items.length > 4 ? (
             <Pagination
               pageSize={pageSize}
@@ -91,6 +90,7 @@ const withPagination = (
               onPrevious={this.onPrevious}
             />
           ) : null}
+          <WrappedComponent items={paginatedItems} {...props} />
         </>
       )
     }

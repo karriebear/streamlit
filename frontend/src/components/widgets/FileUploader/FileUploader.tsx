@@ -81,12 +81,11 @@ class FileUploader extends React.PureComponent<Props, State> {
     // Validate size
     const { element } = this.props
     file.cancelToken = axios.CancelToken.source()
-    this.uploadFile(file)
-
     this.setState(state => ({ files: state.files.concat(file) }))
   }
 
-  private uploadFile = (file: ExtendedFile): void => {
+  private uploadFile = (file: ExtendedFile, index: number): void => {
+    this.handleFile(file, index)
     this.props.uploadClient
       .uploadFiles(
         this.props.element.get("id"),
@@ -131,13 +130,27 @@ class FileUploader extends React.PureComponent<Props, State> {
       })
   }
 
+  private rejectFiles = (rejectedFiles: FileRejection[]) => {
+    const uploadedFiles: ExtendedFile[] = []
+
+    rejectedFiles.forEach((rejectedFile, index) => {
+      Object.assign(rejectedFile.file, {
+        status: "ERROR",
+        errorMessage: this.getErrorMessage(
+          rejectedFile.errors[0].code,
+          rejectedFile.file
+        ),
+      })
+      this.handleFile(rejectedFile.file, index)
+    })
+  }
+
   private dropHandler = (
     acceptedFiles: ExtendedFile[],
     rejectedFiles: FileRejection[]
   ): void => {
     const { element } = this.props
     const multipleFiles = element.get("multipleFiles")
-    const uploadedFiles: ExtendedFile[] = []
 
     if (!multipleFiles && this.state.files.length) {
       // Only one file is allowed. Delete existing file.
@@ -147,40 +160,14 @@ class FileUploader extends React.PureComponent<Props, State> {
     if (rejectedFiles.length > 1 && !multipleFiles) {
       const firstFile: FileRejection | undefined = rejectedFiles.shift()
       if (firstFile) {
-        this.handleFile(firstFile.file, acceptedFiles.length)
+        this.uploadFile(firstFile.file, acceptedFiles.length)
       }
-      rejectedFiles.forEach(rejectedFile =>
-        uploadedFiles.push(
-          Object.assign(rejectedFile.file, {
-            status: "ERROR",
-            errorMessage: this.getErrorMessage(
-              rejectedFile.errors[0].code,
-              rejectedFile.file
-            ),
-          })
-        )
-      )
+      this.rejectFiles(rejectedFiles)
     } else {
-      rejectedFiles.forEach(rejectedFile =>
-        uploadedFiles.push(
-          Object.assign(rejectedFile.file, {
-            status: "ERROR",
-            errorMessage: this.getErrorMessage(
-              rejectedFile.errors[0].code,
-              rejectedFile.file
-            ),
-          })
-        )
-      )
+      this.rejectFiles(rejectedFiles)
     }
 
-    if (uploadedFiles.length) {
-      this.setState({
-        files: this.state.files.concat(uploadedFiles),
-      })
-    }
-
-    acceptedFiles.map(this.handleFile)
+    acceptedFiles.map(this.uploadFile)
   }
 
   private getErrorMessage = (
@@ -210,8 +197,13 @@ class FileUploader extends React.PureComponent<Props, State> {
     id?: string
   ): void => {
     const fileId = event ? event.currentTarget.id : id
-    if (fileId && this.state.files.find(file => file.id === fileId)) {
+    const file = this.state.files.find(file => file.id === fileId)
+    if (fileId && file) {
       // File found, proceed to delete HTTP call.
+      if (file.errorMessage) {
+        this.removeFile(fileId)
+        return
+      }
     } else {
       const errorMessage = "File not found. Please try again."
       this.setState({
@@ -224,16 +216,16 @@ class FileUploader extends React.PureComponent<Props, State> {
 
     this.props.uploadClient
       .delete(this.props.element.get("id"), fileId)
-      .then(() => {
-        const filteredFiles = this.state.files.filter(
-          file => file.id !== fileId
-        )
-        this.setState({
-          status: filteredFiles.length ? "UPLOADED" : "READY",
-          errorMessage: undefined,
-          files: filteredFiles,
-        })
-      })
+      .then(() => this.removeFile(fileId))
+  }
+
+  private removeFile = (fileId: string) => {
+    const filteredFiles = this.state.files.filter(file => file.id !== fileId)
+    this.setState({
+      status: filteredFiles.length ? "UPLOADED" : "READY",
+      errorMessage: undefined,
+      files: filteredFiles,
+    })
   }
 
   private reset = (): void => {
