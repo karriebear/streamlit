@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import React from "react"
+import React, { ReactElement } from "react"
 import classNames from "classnames"
 import { Button as BaseUIButton } from "baseui/button"
 import { buttonOverrides } from "lib/widgetTheme"
@@ -28,23 +28,16 @@ export interface Props {
   style?: any
 }
 
-class UIButton extends React.PureComponent<Props> {
-  public render(): React.ReactNode {
-    return (
-      <div
-        className={classNames("stButton", this.props.className)}
-        style={this.props.style}
-      >
-        <BaseUIButton
-          disabled={this.props.disabled}
-          onClick={this.props.onClick}
-          overrides={buttonOverrides}
-        >
-          {this.props.label}
-        </BaseUIButton>
-      </div>
-    )
-  }
-}
+const UIButton = (props: Props): ReactElement => (
+  <div className={classNames("stButton", props.className)} style={props.style}>
+    <BaseUIButton
+      disabled={props.disabled}
+      onClick={props.onClick}
+      overrides={buttonOverrides}
+    >
+      {props.label}
+    </BaseUIButton>
+  </div>
+)
 
 export default UIButton

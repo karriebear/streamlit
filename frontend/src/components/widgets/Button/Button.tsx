@@ -15,38 +15,37 @@
  * limitations under the License.
  */
 
-import React from "react"
+import React, { ReactElement } from "react"
 import { Map as ImmutableMap } from "immutable"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 import UIButton from "./UIButton"
 
-export interface Props {
+export interface ButtonProps {
   disabled: boolean
   element: ImmutableMap<string, any>
   widgetMgr: WidgetStateManager
   width: number
 }
 
-class Button extends React.PureComponent<Props> {
-  private handleClick = (): void => {
-    const widgetId = this.props.element.get("id")
-    this.props.widgetMgr.setTriggerValue(widgetId, { fromUi: true })
+function Button(props: ButtonProps): ReactElement {
+  const { disabled, element, widgetMgr, width } = props
+  const label = element.get("label")
+  const style = { width }
+
+  const handleClick = (): void => {
+    const widgetId = element.get("id")
+    widgetMgr.setTriggerValue(widgetId, { fromUi: true })
   }
 
-  public render(): React.ReactNode {
-    const label = this.props.element.get("label")
-    const style = { width: this.props.width }
-
-    return (
-      <UIButton
-        disabled={this.props.disabled}
-        onClick={this.handleClick}
-        className="Widget row-widget"
-        style={style}
-        label={label}
-      />
-    )
-  }
+  return (
+    <UIButton
+      disabled={disabled}
+      onClick={handleClick}
+      className="Widget row-widget"
+      style={style}
+      label={label}
+    />
+  )
 }
 
 export default Button
