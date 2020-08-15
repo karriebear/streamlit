@@ -27,6 +27,7 @@ import { fileUploaderOverrides } from "lib/widgetTheme" // deprecate
 
 import UIButton from "components/widgets/Button/UIButton"
 import UploadedFiles from "./UploadedFiles"
+import MimeTypes from "mime-types"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -265,10 +266,7 @@ class FileUploader extends React.PureComponent<Props, State> {
     const { element } = this.props
     const label: string = element.get("label")
     const multipleFiles: boolean = element.get("multipleFiles")
-    const accept: string[] = element
-      .get("type")
-      .toArray()
-      .map((value: string) => `.${value}`)
+    const acceptedExtensions: string[] = element.get("type").toArray()
 
     return (
       <div className="Widget stFileUploader">
@@ -277,7 +275,14 @@ class FileUploader extends React.PureComponent<Props, State> {
           <Dropzone
             onDrop={this.dropHandler}
             multiple={multipleFiles}
-            accept={accept.length === 0 ? undefined : accept}
+            accept={
+              acceptedExtensions.length
+                ? acceptedExtensions.map(
+                    (value: string): string =>
+                      MimeTypes.contentType(value) || `.${value}`
+                  )
+                : undefined
+            }
             maxSize={this.state.maxSizeBytes}
             disabled={this.props.disabled}
           >
@@ -295,8 +300,8 @@ class FileUploader extends React.PureComponent<Props, State> {
                     </span>
                     <small>
                       {getSizeDisplay(this.state.maxSizeBytes, "b", 0)}
-                      {accept.length
-                        ? ` • ${accept
+                      {acceptedExtensions.length
+                        ? ` • ${acceptedExtensions
                             .join(", ")
                             .replace(".", "")
                             .toUpperCase()}`
