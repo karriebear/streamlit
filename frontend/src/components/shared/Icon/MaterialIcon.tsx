@@ -15,5 +15,27 @@
  * limitations under the License.
  */
 
-export { default } from "./Icon"
-export { default as MaterialIcon } from "./MaterialIcon"
+import React, { ReactElement } from "react"
+import classNames from "classnames"
+import "./MaterialIcon.scss"
+
+interface Props {
+  icon: string
+  type?: string
+  className?: string
+}
+
+const MaterialIcon = ({ icon, type, className }: Props): ReactElement => (
+  <i
+    className={classNames(
+      `material-${type ? `${type}-` : ""}icons`,
+      className
+    )}
+    title={type}
+    aria-hidden="true"
+  >
+    {icon}
+  </i>
+)
+
+export default MaterialIcon

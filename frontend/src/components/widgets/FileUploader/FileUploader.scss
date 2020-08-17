@@ -30,11 +30,11 @@
     .fileUploaderIcon {
       display: none;
     }
+  }
 
-    .uploadedFile {
-      max-width: inherit;
-      flex: 1;
-    }
+  .uploadedFiles .uploadedFile {
+    max-width: inherit;
+    flex: 1;
   }
 }
 

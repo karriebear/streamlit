@@ -18,6 +18,7 @@
 import { CancelTokenSource } from "axios"
 import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
 import Icon from "components/shared/Icon"
+import { MaterialIcon } from "components/shared/Icon"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import React from "react"
 import { Button } from "reactstrap"
@@ -97,7 +98,11 @@ class UploadedFile extends React.PureComponent<Props> {
     return (
       <div className="uploadedFile col-md-6">
         <div className="fileIcon">
-          <Icon className="icon icon-md" type="file" />
+          <MaterialIcon
+            type="outlined"
+            icon="insert_drive_file"
+            className="icon-md icon text-secondary"
+          />
         </div>
         <div className="uploadedFileData">
           <div className="mb-1 text-truncate">{file.name}</div>

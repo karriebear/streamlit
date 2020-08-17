@@ -18,7 +18,7 @@
 import React from "react"
 import axios, { CancelTokenSource } from "axios"
 import Dropzone, { FileRejection } from "react-dropzone"
-import Icon from "components/shared/Icon"
+import { MaterialIcon } from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
 import { FileUploadClient } from "lib/FileUploadClient"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
@@ -82,7 +82,10 @@ class FileUploader extends React.PureComponent<Props, State> {
     // Validate size
     const { element } = this.props
     file.cancelToken = axios.CancelToken.source()
-    this.setState(state => ({ files: state.files.concat(file) }))
+    this.setState(state => {
+      state.files.unshift(file)
+      return { files: [...state.files] }
+    })
   }
 
   private uploadFile = (file: ExtendedFile, index: number): void => {
@@ -290,10 +293,11 @@ class FileUploader extends React.PureComponent<Props, State> {
               <section {...getRootProps()} className="fileUploadDropzone">
                 <input {...getInputProps()} />
                 <div className="mr-auto d-none d-md-flex align-items-center">
-                  <Icon
-                    className="icon fileUploaderIcon icon-md"
-                    type="cloud-upload"
-                  />{" "}
+                  <MaterialIcon
+                    icon="cloud_upload"
+                    className="mr-3 text-secondary icon-lg"
+                    type="outlined"
+                  />
                   <div className="d-flex flex-column">
                     <span>
                       Drag and drop file{multipleFiles ? "s" : ""} here
