@@ -90,6 +90,7 @@ class FileUploader extends React.PureComponent<Props, State> {
 
   private uploadFile = (file: ExtendedFile, index: number): void => {
     this.handleFile(file, index)
+    file.progress = 1
     this.props.uploadClient
       .uploadFiles(
         this.props.element.get("id"),
@@ -303,7 +304,11 @@ class FileUploader extends React.PureComponent<Props, State> {
                       Drag and drop file{multipleFiles ? "s" : ""} here
                     </span>
                     <small>
-                      {getSizeDisplay(this.state.maxSizeBytes, "b", 0)}
+                      {`Limit ${getSizeDisplay(
+                        this.state.maxSizeBytes,
+                        "b",
+                        0
+                      )} per file`}
                       {acceptedExtensions.length
                         ? ` • ${acceptedExtensions
                             .join(", ")

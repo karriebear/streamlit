@@ -82,7 +82,7 @@ class UploadedFile extends React.PureComponent<Props> {
 
     if (file.status === "UPLOADED") {
       return (
-        <small style={{ height: "20px" }}>{`Uploaded | ${getSizeDisplay(
+        <small style={{ height: "20px" }}>{`Uploaded • ${getSizeDisplay(
           file.size,
           "b"
         )}`}</small>

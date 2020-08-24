@@ -1,5 +1,5 @@
 import React from "react"
-import Icon from "components/shared/Icon"
+import { MaterialIcon } from "components/shared/Icon"
 
 interface Props {
   currentPage: number
@@ -22,10 +22,10 @@ const Pagination = ({
       </small>
       <div className="d-flex align-items-center justify-content-center text-secondary">
         <div onClick={onPrevious}>
-          <Icon className="icon icon-xs" type="chevron-left" />
+          <MaterialIcon className="icon icon-xs" icon="chevron_left" />
         </div>
         <div onClick={onNext}>
-          <Icon className="icon icon-xs ml-3" type="chevron-right" />
+          <MaterialIcon className="icon icon-xs ml-3" icon="chevron_right" />
         </div>
       </div>
     </div>
