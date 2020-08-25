@@ -41,7 +41,7 @@ you're working on.
 $ pip install streamlit
 ```
 
-Now run the hello world app just to make sure everything it's working:
+Now run the hello world app just to make sure everything is working:
 
 ```bash
 $ streamlit hello
@@ -245,8 +245,7 @@ option = st.sidebar.selectbox(
 Most of the elements you can put into your app can also be put into a sidebar using this syntax:
 `st.sidebar.[element_name]()`. Here are a few examples that show how it's used: `st.sidebar.markdown()`, `st.sidebar.slider()`, `st.sidebar.line_chart()`.
 
-The only exceptions right now are `st.write` (you
-should use `st.sidebar.markdown()` instead), `st.echo`, and `st.spinner`. Rest
+The only exceptions right now are `st.echo` and `st.spinner`. Rest
 assured, though, we're currently working on adding support for those too!
 
 ## Show progress
