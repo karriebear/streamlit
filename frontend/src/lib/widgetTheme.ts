@@ -20,7 +20,7 @@ import { createTheme, lightThemePrimitives } from "baseui"
 import { PLACEMENT as POPOVER_PLACEMENT } from "baseui/popover"
 import { logMessage } from "lib/log"
 import { SCSS_VARS } from "autogen/scssVariables"
-import { FileUploaderOverrides, StyleProps } from "baseui/file-uploader"
+import { StyleProps } from "baseui/file-uploader"
 
 const black = SCSS_VARS.$black
 const borderRadius = SCSS_VARS["$border-radius"]
@@ -48,6 +48,13 @@ const fontStyles = {
   fontSize: fontSizeBase,
   fontWeight: "normal",
   lineHeight: lineHeightBase,
+}
+
+export const sizes = {
+  small: "sm",
+  medium: "md",
+  large: "lg",
+  "extra-large": "xl",
 }
 
 export const sliderOverrides = {
@@ -128,90 +135,6 @@ export const sliderOverrides = {
   InnerTrack: {
     style: ({ $disabled }: { $disabled: boolean }) =>
       $disabled ? { background: grayLighter } : {},
-  },
-}
-
-export const fileUploaderOverrides: FileUploaderOverrides<StyleProps> = {
-  // Important: these values must match the ones in FileUploader.scss!
-  FileDragAndDrop: {
-    style: ({
-      $theme,
-      $isDragActive,
-    }: {
-      $theme: Theme
-      $isDragActive: boolean
-    }) => ({
-      borderRadius,
-      display: "flex",
-      color: grayDark,
-      fontSize: fontSizeSm,
-      lineHeight: lineHeightTight,
-      flexDirection: "column",
-      justifyContent: "center",
-      paddingTop: "0.25rem",
-      paddingBottom: "0.25rem",
-      paddingLeft: "0.25rem",
-      paddingRight: "0.25rem",
-      height: "4.25rem",
-      borderColor: $isDragActive ? primary : "transparent",
-      backgroundColor: $isDragActive ? primaryA50 : $theme.colors.mono200,
-      borderStyle: "solid",
-      borderWidth: "1px",
-      ":focus": {
-        outline: 0,
-        borderColor: primary,
-      },
-    }),
-  },
-  ContentSeparator: {
-    style: {
-      fontSize: fontSizeSm,
-      color: grayDark,
-      lineHeight: lineHeightTight,
-      display: "",
-    },
-  },
-  ContentMessage: {
-    style: {
-      fontSize: fontSizeSm,
-      color: grayDark,
-      lineHeight: lineHeightTight,
-      display: "",
-    },
-  },
-  ButtonComponent: {
-    props: {
-      overrides: {
-        BaseButton: {
-          style: {
-            color: primary,
-            fontSize: fontSizeSm,
-            lineHeight: lineHeightTight,
-            paddingBottom: 0,
-            paddingLeft: "0.25em",
-            paddingRight: "0.25em",
-            paddingTop: 0,
-            textTransform: "lowercase",
-            ":hover": {
-              backgroundColor: "transparent",
-              textDecoration: "underline",
-            },
-            ":active": {
-              backgroundColor: "transparent",
-              textDecoration: "underline",
-            },
-            ":disabled": {
-              backgroundColor: "transparent",
-              color: grayDark,
-            },
-            ":focus": {
-              outline: 0,
-              backgroundColor: "transparent",
-            },
-          },
-        },
-      },
-    },
   },
 }
 
@@ -502,11 +425,13 @@ const themeOverrides = {
     tickFillDisabled: gray,
     tickMarkFill: grayLightest,
     tickFillSelected: primary,
+
     calendarHeaderForegroundDisabled: grayLight,
     calendarDayBackgroundSelected: primary,
     calendarDayBackgroundSelectedHighlighted: primary,
     calendarDayForegroundSelected: white,
     calendarDayForegroundSelectedHighlighted: white,
+
     notificationInfoBackground: SCSS_VARS["$alert-info-background-color"],
     notificationInfoText: SCSS_VARS["$alert-info-text-color"],
     notificationPositiveBackground:
@@ -517,6 +442,7 @@ const themeOverrides = {
     notificationWarningText: SCSS_VARS["$alert-warning-text-color"],
     notificationNegativeBackground: SCSS_VARS["$alert-error-background-color"],
     notificationNegativeText: SCSS_VARS["$alert-error-text-color"],
+
     progressbarTrackFill: grayLightest,
   },
 }
@@ -538,7 +464,6 @@ export const sidebarWidgetTheme = createTheme(mainThemePrimitives, {
 
     // mono200 overrides
     buttonDisabledFill: white,
-    fileUploaderBackgroundColor: white,
     tickFillHover: white,
     inputFillDisabled: white,
     inputFillActive: white,

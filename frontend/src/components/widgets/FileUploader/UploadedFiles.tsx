@@ -39,7 +39,7 @@ export const UploadedFiles = ({ items, onDelete }: Props): ReactElement => {
       {items.map((file, index) => (
         <UploadedFile
           file={file}
-          progress={file.progress}
+          progress={file.progress || 10}
           onDelete={onDelete}
         />
       ))}

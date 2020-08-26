@@ -23,7 +23,6 @@ import { Map as ImmutableMap } from "immutable"
 import { FileUploadClient } from "lib/FileUploadClient"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import { WidgetStateManager } from "lib/WidgetStateManager"
-import { fileUploaderOverrides } from "lib/widgetTheme" // deprecate
 
 import UIButton from "components/widgets/Button/UIButton"
 import UploadedFiles from "./UploadedFiles"

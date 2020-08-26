@@ -16,7 +16,7 @@
  */
 
 import { CancelTokenSource } from "axios"
-import { ProgressBar as ProgressBarBaseui } from "baseui/progress-bar"
+import ProgressBar from "components/shared/ProgressBar"
 import Icon from "components/shared/Icon"
 import { MaterialIcon } from "components/shared/Icon"
 import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
@@ -56,9 +56,9 @@ class UploadedFile extends React.PureComponent<Props> {
 
     if (progress) {
       return (
-        <ProgressBarBaseui
+        <ProgressBar
           value={progress}
-          successValue={100}
+          size="small"
           overrides={{
             Bar: {
               style: {

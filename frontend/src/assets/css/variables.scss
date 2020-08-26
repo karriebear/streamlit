@@ -112,7 +112,11 @@ $overlayBtn-opacity-active: 0.75;
 $normal-animation-duration: 300ms;
 
 // Progress Bar
-$progress-bar-height: 1rem;
+$progress-bar-height-sm: 0.5rem;
+$progress-bar-height-md: 1rem;
+$progress-bar-height-lg: 1.25rem;
+$progress-bar-height-xl: 1.5rem;
+$progress-bar-height: $progress-bar-height-md;
 $progress-bar-margin: 0;
 
 // Code
