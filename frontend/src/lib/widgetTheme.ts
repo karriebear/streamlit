@@ -374,7 +374,7 @@ const mainThemePrimitives = {
 // Theme overrides.
 // NOTE: A lot of the properties we can override here don't seem to actually
 // be used anywhere in BaseWeb's source. Will report a bug about it.
-const themeOverrides = {
+export const themeOverrides = {
   borders: {
     radius100: borderRadius,
     radius200: borderRadius,

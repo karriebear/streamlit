@@ -18,15 +18,16 @@
 import React from "react"
 import axios, { CancelTokenSource } from "axios"
 import Dropzone, { FileRejection } from "react-dropzone"
-import { MaterialIcon } from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
+import MimeTypes from "mime-types"
+
+import { ExtendedFile, FileStatuses, getSizeDisplay } from "lib/FileHelper"
 import { FileUploadClient } from "lib/FileUploadClient"
-import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 
 import UIButton from "components/widgets/Button/UIButton"
 import UploadedFiles from "./UploadedFiles"
-import MimeTypes from "mime-types"
+import FileUploaderInstructions from "./FileUploaderInstructions"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -83,13 +84,15 @@ class FileUploader extends React.PureComponent<Props, State> {
     file.cancelToken = axios.CancelToken.source()
     this.setState(state => {
       state.files.unshift(file)
-      return { files: [...state.files] }
+      return {
+        files: [...state.files],
+      }
     })
   }
 
   private uploadFile = (file: ExtendedFile, index: number): void => {
-    this.handleFile(file, index)
     file.progress = 1
+    this.handleFile(file, index)
     this.props.uploadClient
       .uploadFiles(
         this.props.element.get("id"),
@@ -119,7 +122,6 @@ class FileUploader extends React.PureComponent<Props, State> {
           // the cancellation was in response to an action they took
           const files = this.state.files.map(existingFile => {
             if (file.id === existingFile.id) {
-              // status: "UPLOADED",
               return file
             }
             return existingFile
@@ -135,8 +137,6 @@ class FileUploader extends React.PureComponent<Props, State> {
   }
 
   private rejectFiles = (rejectedFiles: FileRejection[]) => {
-    const uploadedFiles: ExtendedFile[] = []
-
     rejectedFiles.forEach((rejectedFile, index) => {
       Object.assign(rejectedFile.file, {
         status: "ERROR",
@@ -203,15 +203,18 @@ class FileUploader extends React.PureComponent<Props, State> {
     const fileId = event ? event.currentTarget.id : id
     const file = this.state.files.find(file => file.id === fileId)
     if (fileId && file) {
-      // File found, proceed to delete HTTP call.
+      file.status = FileStatuses.DELETING
+      this.setState({ files: [...this.state.files] })
       if (file.errorMessage) {
+        // If file had an error message, it was not uploaded.
+        // No need to make a HTTP call.
         this.removeFile(fileId)
         return
       }
     } else {
       const errorMessage = "File not found. Please try again."
       this.setState({
-        status: "ERROR",
+        status: FileStatuses.ERROR,
         errorMessage: errorMessage,
       })
 
@@ -226,7 +229,9 @@ class FileUploader extends React.PureComponent<Props, State> {
   private removeFile = (fileId: string) => {
     const filteredFiles = this.state.files.filter(file => file.id !== fileId)
     this.setState({
-      status: filteredFiles.length ? "UPLOADED" : "READY",
+      status: filteredFiles.length
+        ? FileStatuses.UPLOADED
+        : FileStatuses.READY,
       errorMessage: undefined,
       files: filteredFiles,
     })
@@ -234,7 +239,7 @@ class FileUploader extends React.PureComponent<Props, State> {
 
   private reset = (): void => {
     this.setState({
-      status: "READY",
+      status: FileStatuses.READY,
       errorMessage: undefined,
       files: [],
     })
@@ -265,7 +270,7 @@ class FileUploader extends React.PureComponent<Props, State> {
   }
 
   public render = (): React.ReactNode => {
-    const { status, errorMessage, files } = this.state
+    const { maxSizeBytes, errorMessage, files } = this.state
     const { element } = this.props
     const label: string = element.get("label")
     const multipleFiles: boolean = element.get("multipleFiles")
@@ -274,60 +279,39 @@ class FileUploader extends React.PureComponent<Props, State> {
     return (
       <div className="Widget stFileUploader">
         <label>{label}</label>
-        {multipleFiles || files.length === 0 ? (
-          <Dropzone
-            onDrop={this.dropHandler}
-            multiple={multipleFiles}
-            accept={
-              acceptedExtensions.length
-                ? acceptedExtensions.map(
-                    (value: string): string =>
-                      MimeTypes.contentType(value) || `.${value}`
-                  )
-                : undefined
-            }
-            maxSize={this.state.maxSizeBytes}
-            disabled={this.props.disabled}
-          >
-            {({ getRootProps, getInputProps }) => (
-              <section {...getRootProps()} className="fileUploadDropzone">
-                <input {...getInputProps()} />
-                <div className="mr-auto d-none d-md-flex align-items-center">
-                  <MaterialIcon
-                    icon="cloud_upload"
-                    className="mr-3 text-secondary icon-lg"
-                    type="outlined"
-                  />
-                  <div className="d-flex flex-column">
-                    <span>
-                      Drag and drop file{multipleFiles ? "s" : ""} here
-                    </span>
-                    <small>
-                      {`Limit ${getSizeDisplay(
-                        this.state.maxSizeBytes,
-                        "b",
-                        0
-                      )} per file`}
-                      {acceptedExtensions.length
-                        ? ` • ${acceptedExtensions
-                            .join(", ")
-                            .replace(".", "")
-                            .toUpperCase()}`
-                        : null}
-                    </small>
-                  </div>
-                </div>
-                <UIButton label="Browse files" />
-              </section>
-            )}
-          </Dropzone>
-        ) : null}
+        <Dropzone
+          onDrop={this.dropHandler}
+          multiple={multipleFiles}
+          accept={
+            acceptedExtensions.length
+              ? acceptedExtensions.map(
+                  (value: string): string =>
+                    MimeTypes.contentType(value) || `.${value}`
+                )
+              : undefined
+          }
+          maxSize={maxSizeBytes}
+          disabled={this.props.disabled}
+        >
+          {({ getRootProps, getInputProps }) => (
+            <section {...getRootProps()} className="fileUploadDropzone">
+              <input {...getInputProps()} />
+              <FileUploaderInstructions
+                multipleFiles={multipleFiles}
+                acceptedExtensions={acceptedExtensions}
+                maxSizeBytes={maxSizeBytes}
+              />
+              <UIButton label="Browse files" />
+            </section>
+          )}
+        </Dropzone>
         <div className="uploadedFiles row p-3">
           <UploadedFiles
-            items={files}
+            items={[...files]}
             pageSize={4}
             itemType="files"
             onDelete={this.delete}
+            resetOnAdd
           />
         </div>
       </div>

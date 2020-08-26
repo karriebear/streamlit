@@ -31,7 +31,6 @@ const MaterialIcon = ({ icon, type, className }: Props): ReactElement => (
       `material-${type ? `${type}-` : ""}icons`,
       className
     )}
-    title={type}
     aria-hidden="true"
   >
     {icon}

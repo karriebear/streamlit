@@ -8,6 +8,13 @@ export interface ExtendedFile extends File {
   progress?: number
 }
 
+export enum FileStatuses {
+  ERROR = "ERROR",
+  DELETING = "DELETING",
+  UPLOADED = "UPLOADED",
+  READY = "READY",
+}
+
 const sizeUnitSequence = ["gb", "mb", "kb", "b"]
 export const getSizeDisplay = (
   size: number,

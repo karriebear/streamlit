@@ -22,6 +22,7 @@ import Pagination from "hocs/withPagination/Pagination"
 interface Props {
   items: any[]
   pageSize: number
+  resetOnAdd: boolean
 }
 
 interface State {
@@ -45,9 +46,20 @@ const withPagination = (
     }
 
     public componentDidUpdate(prevProps: Props) {
-      if (prevProps.items !== this.props.items) {
+      if (prevProps.items.length !== this.props.items.length) {
+        const totalPages = this.calculatePageSize(this.props.items)
+
+        let currentPage = this.state.currentPage
+        if (prevProps.items.length < this.props.items.length) {
+          if (this.props.resetOnAdd) {
+            currentPage = 0
+          }
+        } else if (currentPage + 1 >= totalPages) {
+          currentPage = totalPages - 1
+        }
         this.setState({
-          totalPages: this.calculatePageSize(this.props.items),
+          totalPages,
+          currentPage,
         })
       }
     }
@@ -81,6 +93,7 @@ const withPagination = (
 
       return (
         <>
+          <WrappedComponent items={paginatedItems} {...props} />
           {items.length > 4 ? (
             <Pagination
               pageSize={pageSize}
@@ -90,7 +103,6 @@ const withPagination = (
               onPrevious={this.onPrevious}
             />
           ) : null}
-          <WrappedComponent items={paginatedItems} {...props} />
         </>
       )
     }

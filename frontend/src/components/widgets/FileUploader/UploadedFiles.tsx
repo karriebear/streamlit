@@ -14,8 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { ReactElement, useState } from "react"
-import { MaterialIcon } from "components/shared/Icon"
+import React, { ReactElement } from "react"
 import withPagination from "hocs/withPagination"
 import { ExtendedFile } from "lib/FileHelper"
 import UploadedFile from "./UploadedFile"
@@ -29,26 +28,17 @@ export interface Props {
 }
 
 export const UploadedFiles = ({ items, onDelete }: Props): ReactElement => {
-  const [showFiles, setShowFiles] = useState(true)
-  const toggleFiles = () => {
-    setShowFiles(!showFiles)
-  }
-
-  return showFiles ? (
+  return (
     <>
       {items.map((file, index) => (
         <UploadedFile
+          key={file.id}
           file={file}
-          progress={file.progress || 10}
+          progress={file.progress}
           onDelete={onDelete}
         />
       ))}
     </>
-  ) : (
-    <div onClick={toggleFiles}>
-      <MaterialIcon icon="chevron_right" className="text-secondary" />
-      {`${items.length} files`}
-    </div>
   )
 }
 

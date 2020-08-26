@@ -16,12 +16,13 @@
  */
 
 import { CancelTokenSource } from "axios"
-import ProgressBar from "components/shared/ProgressBar"
-import Icon from "components/shared/Icon"
-import { MaterialIcon } from "components/shared/Icon"
-import { ExtendedFile, getSizeDisplay } from "lib/FileHelper"
 import React from "react"
-import { Button } from "reactstrap"
+import { Delete } from "baseui/icon"
+import Icon, { MaterialIcon } from "components/shared/Icon"
+import { IconButton } from "components/widgets/Button"
+import ProgressBar from "components/shared/ProgressBar"
+import { ExtendedFile, FileStatuses, getSizeDisplay } from "lib/FileHelper"
+
 import "./FileUploader.scss"
 
 export interface Props {
@@ -38,7 +39,7 @@ class UploadedFile extends React.PureComponent<Props> {
   public constructor(props: Props) {
     super(props)
     this.state = {
-      status: "READY",
+      status: FileStatuses.READY,
       errorMessage: undefined,
       files: [],
     }
@@ -53,7 +54,6 @@ class UploadedFile extends React.PureComponent<Props> {
 
   private renderFileStatus = () => {
     const { file, progress } = this.props
-
     if (progress) {
       return (
         <ProgressBar
@@ -71,7 +71,7 @@ class UploadedFile extends React.PureComponent<Props> {
       )
     }
 
-    if (file.status === "ERROR") {
+    if (file.status === FileStatuses.ERROR) {
       return (
         <small className="text-danger d-flex">
           {file.errorMessage || "error"}
@@ -80,13 +80,12 @@ class UploadedFile extends React.PureComponent<Props> {
       )
     }
 
-    if (file.status === "UPLOADED") {
-      return (
-        <small style={{ height: "20px" }}>{`Uploaded • ${getSizeDisplay(
-          file.size,
-          "b"
-        )}`}</small>
-      )
+    if (file.status === FileStatuses.UPLOADED) {
+      return <small>{`Uploaded • ${getSizeDisplay(file.size, "b")}`}</small>
+    }
+
+    if (file.status === FileStatuses.DELETING) {
+      return <small>Removing file</small>
     }
 
     return null
@@ -101,14 +100,18 @@ class UploadedFile extends React.PureComponent<Props> {
           <MaterialIcon
             type="outlined"
             icon="insert_drive_file"
-            className="icon-md icon text-secondary"
+            className="icon-lg"
           />
         </div>
         <div className="uploadedFileData">
-          <div className="mb-1 text-truncate">{file.name}</div>
+          <div className="mb-1 text-truncate" title={file.name}>
+            {file.name}
+          </div>
           {this.renderFileStatus()}
         </div>
-        <Button close onClick={onDelete} id={file.id} />
+        <IconButton onClick={onDelete} id={file.id}>
+          <Delete size={24} />
+        </IconButton>
       </div>
     )
   }
