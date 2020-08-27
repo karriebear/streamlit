@@ -1,8 +1,10 @@
 import React from "react"
+import classnames from "classnames"
 import { MaterialIcon } from "components/shared/Icon"
 import { IconButton } from "components/widgets/Button"
 
 interface Props {
+  classNames: string
   currentPage: number
   totalPages: number
   pageSize: number
@@ -11,13 +13,19 @@ interface Props {
 }
 
 const Pagination = ({
+  classNames,
   currentPage,
   totalPages,
   onNext,
   onPrevious,
 }: Props) => {
   return (
-    <div className="col-12 d-flex align-items-center justify-content-between pb-1 mb-1">
+    <div
+      className={classnames(
+        "d-flex align-items-center justify-content-between pb-1 mb-1",
+        classNames
+      )}
+    >
       <small>{`Showing ${currentPage} of ${totalPages} pages`}</small>
       <div className="d-flex align-items-center justify-content-center text-secondary">
         <IconButton onClick={onPrevious}>

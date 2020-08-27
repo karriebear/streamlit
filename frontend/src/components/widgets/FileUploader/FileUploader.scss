@@ -63,15 +63,16 @@
   .fileIcon {
     color: $gray;
     display: flex;
-    align-items: center;
+    padding: 0 $spacer/4;
   }
 
   .uploadedFiles {
-    display: flex;
     left: 0;
     line-height: $line-height-tight;
     padding-top: 0.75rem;
     right: 0;
+    padding-left: $spacer;
+    padding-right: $spacer * 2;
 
     .uploadedFile {
       display: flex;
@@ -81,12 +82,10 @@
 
     .uploadedFileData {
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
       flex: 1;
-      margin-right: $spacer;
       padding-left: $spacer;
       overflow: hidden;
-      padding-bottom: $spacer/4;
     }
   }
 }

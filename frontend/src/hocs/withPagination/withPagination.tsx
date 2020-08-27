@@ -20,6 +20,7 @@ import hoistNonReactStatics from "hoist-non-react-statics"
 import Pagination from "hocs/withPagination/Pagination"
 
 interface Props {
+  classNames: string
   items: any[]
   pageSize: number
   resetOnAdd: boolean
@@ -85,7 +86,7 @@ const withPagination = (
 
     render(): ReactNode {
       const { pageSize, currentPage, totalPages } = this.state
-      const { items, ...props } = this.props
+      const { items, classNames, ...props } = this.props
       const paginatedItems = items.slice(
         currentPage * pageSize,
         currentPage * pageSize + pageSize
@@ -96,6 +97,7 @@ const withPagination = (
           <WrappedComponent items={paginatedItems} {...props} />
           {items.length > 4 ? (
             <Pagination
+              classNames={classNames}
               pageSize={pageSize}
               totalPages={totalPages}
               currentPage={currentPage + 1}

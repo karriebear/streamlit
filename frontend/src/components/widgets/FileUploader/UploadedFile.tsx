@@ -81,7 +81,7 @@ class UploadedFile extends React.PureComponent<Props> {
     }
 
     if (file.status === FileStatuses.UPLOADED) {
-      return <small>{`Uploaded • ${getSizeDisplay(file.size, "b")}`}</small>
+      return <small>{getSizeDisplay(file.size, "b")}</small>
     }
 
     if (file.status === FileStatuses.DELETING) {
@@ -95,22 +95,22 @@ class UploadedFile extends React.PureComponent<Props> {
     const { file, onDelete } = this.props
 
     return (
-      <div className="uploadedFile col-md-6">
+      <div className="uploadedFile">
         <div className="fileIcon">
           <MaterialIcon
             type="outlined"
             icon="insert_drive_file"
-            className="icon-lg"
+            className="icon-md"
           />
         </div>
         <div className="uploadedFileData">
-          <div className="mb-1 text-truncate" title={file.name}>
+          <div className="mr-2 text-truncate" title={file.name}>
             {file.name}
           </div>
           {this.renderFileStatus()}
         </div>
         <IconButton onClick={onDelete} id={file.id}>
-          <Delete size={24} />
+          <Delete size={22} />
         </IconButton>
       </div>
     )

@@ -78,9 +78,7 @@ class FileUploader extends React.PureComponent<Props, State> {
   private handleFile = (file: ExtendedFile, index: number): void => {
     // Add an unique ID to each file for server and client to sync on
     file.id = `${index}${new Date().getTime()}`
-
-    // Validate size
-    const { element } = this.props
+    // Add a cancel token to cancel file upload
     file.cancelToken = axios.CancelToken.source()
     this.setState(state => {
       state.files.unshift(file)
@@ -305,12 +303,13 @@ class FileUploader extends React.PureComponent<Props, State> {
             </section>
           )}
         </Dropzone>
-        <div className="uploadedFiles row p-3">
+        <div className="uploadedFiles">
           <UploadedFiles
             items={[...files]}
             pageSize={4}
             itemType="files"
             onDelete={this.delete}
+            classNames="ml-5 pl-1"
             resetOnAdd
           />
         </div>

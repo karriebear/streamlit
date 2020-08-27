@@ -16,7 +16,6 @@
  */
 
 import React, { ReactElement } from "react"
-import classNames from "classnames"
 import { Button as BaseUIButton, KIND } from "baseui/button"
 import { themeOverrides } from "lib/widgetTheme"
 
