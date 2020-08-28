@@ -26,7 +26,7 @@ const Pagination = ({
         classNames
       )}
     >
-      <small>{`Showing ${currentPage} of ${totalPages} pages`}</small>
+      <small>{`Showing page ${currentPage} of ${totalPages}`}</small>
       <div className="d-flex align-items-center justify-content-center text-secondary">
         <IconButton onClick={onPrevious}>
           <MaterialIcon icon="chevron_left" />

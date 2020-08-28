@@ -18,16 +18,21 @@
 import React from "react"
 import axios, { CancelTokenSource } from "axios"
 import Dropzone, { FileRejection } from "react-dropzone"
+import { MaterialIcon } from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
 import MimeTypes from "mime-types"
+import { styled } from "styletron-react"
 
 import { ExtendedFile, FileStatuses, getSizeDisplay } from "lib/FileHelper"
 import { FileUploadClient } from "lib/FileUploadClient"
 import { WidgetStateManager } from "lib/WidgetStateManager"
+import { colors, variables } from "lib/widgetTheme"
 
 import UIButton from "components/widgets/Button/UIButton"
+import AlertContainer, {
+  Kind as AlertKind,
+} from "components/shared/AlertContainer"
 import UploadedFiles from "./UploadedFiles"
-import FileUploaderInstructions from "./FileUploaderInstructions"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -269,14 +274,43 @@ class FileUploader extends React.PureComponent<Props, State> {
 
   public render = (): React.ReactNode => {
     const { maxSizeBytes, errorMessage, files } = this.state
-    const { element } = this.props
+    const { element, disabled } = this.props
     const label: string = element.get("label")
     const multipleFiles: boolean = element.get("multipleFiles")
     const acceptedExtensions: string[] = element.get("type").toArray()
 
+    const StyledDropzoneSection = styled("section", {
+      ":focus": {
+        outline: "none",
+        boxShadow: `0 0 0 1px ${colors.primary}`,
+      },
+      padding: variables.spacer,
+      backgroundColor: colors.grayLightest,
+      borderRadius: variables.borderRadius,
+      alignItems: "center",
+      display: "flex",
+      "@media (max-width: 880px)": {
+        display: "none",
+      },
+    })
+
+    const StyledInstructions = styled("div", {
+      marginRight: "auto",
+      alignItems: "center",
+      display: "flex",
+      "@media (max-width: 880px)": {
+        display: "none",
+      },
+    })
+
     return (
       <div className="Widget stFileUploader">
         <label>{label}</label>
+        {errorMessage ? (
+          <AlertContainer kind={AlertKind.ERROR}>
+            {errorMessage}
+          </AlertContainer>
+        ) : null}
         <Dropzone
           onDrop={this.dropHandler}
           multiple={multipleFiles}
@@ -289,24 +323,43 @@ class FileUploader extends React.PureComponent<Props, State> {
               : undefined
           }
           maxSize={maxSizeBytes}
-          disabled={this.props.disabled}
+          disabled={disabled}
         >
           {({ getRootProps, getInputProps }) => (
-            <section {...getRootProps()} className="fileUploadDropzone">
+            <StyledDropzoneSection
+              {...getRootProps()}
+              className={`fileUploadDropzone ${disabled ? "disabled" : ""}`}
+            >
               <input {...getInputProps()} />
-              <FileUploaderInstructions
-                multipleFiles={multipleFiles}
-                acceptedExtensions={acceptedExtensions}
-                maxSizeBytes={maxSizeBytes}
-              />
-              <UIButton label="Browse files" />
-            </section>
+              <StyledInstructions>
+                <MaterialIcon
+                  icon="cloud_upload"
+                  className="mr-3 text-secondary icon-lg"
+                  type="outlined"
+                />
+                <div className="d-flex flex-column">
+                  <span>
+                    Drag and drop file{multipleFiles ? "s" : ""} here
+                  </span>
+                  <small>
+                    {`Limit ${getSizeDisplay(maxSizeBytes, "b", 0)} per file`}
+                    {acceptedExtensions.length
+                      ? ` • ${acceptedExtensions
+                          .join(", ")
+                          .replace(".", "")
+                          .toUpperCase()}`
+                      : null}
+                  </small>
+                </div>
+              </StyledInstructions>
+              <UIButton label="Browse files" disabled={disabled} />
+            </StyledDropzoneSection>
           )}
         </Dropzone>
         <div className="uploadedFiles">
           <UploadedFiles
             items={[...files]}
-            pageSize={4}
+            pageSize={3}
             itemType="files"
             onDelete={this.delete}
             classNames="ml-5 pl-1"

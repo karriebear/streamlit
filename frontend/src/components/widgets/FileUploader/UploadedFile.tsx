@@ -18,7 +18,7 @@
 import { CancelTokenSource } from "axios"
 import React from "react"
 import { Delete } from "baseui/icon"
-import Icon, { MaterialIcon } from "components/shared/Icon"
+import { MaterialIcon } from "components/shared/Icon"
 import { IconButton } from "components/widgets/Button"
 import ProgressBar from "components/shared/ProgressBar"
 import { ExtendedFile, FileStatuses, getSizeDisplay } from "lib/FileHelper"
@@ -73,9 +73,9 @@ class UploadedFile extends React.PureComponent<Props> {
 
     if (file.status === FileStatuses.ERROR) {
       return (
-        <small className="text-danger d-flex">
+        <small className="text-danger d-flex align-items-center">
           {file.errorMessage || "error"}
-          <Icon className="icon ml-1" type="warning" />{" "}
+          <MaterialIcon icon="error" className="ml-1" />
         </small>
       )
     }

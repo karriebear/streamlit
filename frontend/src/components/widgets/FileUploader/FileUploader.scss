@@ -46,18 +46,20 @@
     line-height: $font-size-sm;
   }
 
+  .disabled {
+    &,
+    small {
+      color: $gray;
+    }
+  }
+
   .fileUploaderIcon {
     color: $secondary;
     margin-right: $spacer;
   }
 
   .fileUploadDropzone {
-    background-color: $gray-lightest;
-    border-radius: $border-radius;
-    padding: $spacer;
     padding-right: 2 * $spacer;
-    display: flex;
-    align-items: center;
   }
 
   .fileIcon {
