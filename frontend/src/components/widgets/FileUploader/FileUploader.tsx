@@ -23,7 +23,9 @@ import { FileUploadClient } from "lib/FileUploadClient"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 import { fileUploaderOverrides } from "lib/widgetTheme"
 import React from "react"
-import { Button, Spinner } from "reactstrap"
+import { Button } from "reactstrap"
+import { Spinner } from "baseui/spinner"
+import { SCSS_VARS } from "autogen/scssVariables"
 import "./FileUploader.scss"
 
 export interface Props {
@@ -53,6 +55,17 @@ class FileUploader extends React.PureComponent<Props, State> {
     }
   }
 
+  public componentDidUpdate = (prevProps: Props): void => {
+    // Widgets are disabled if the app is not connected anymore.
+    // If the app disconnects from the server, a new session is created and users
+    // will lose access to the files they uploaded in their previous session.
+    // If we are reconnecting, reset the file uploader so that the widget is
+    // in sync with the new session.
+    if (prevProps.disabled !== this.props.disabled && this.props.disabled) {
+      this.reset()
+    }
+  }
+
   private dropHandler = (
     acceptedFiles: File[],
     rejectedFiles: File[],
@@ -66,7 +79,7 @@ class FileUploader extends React.PureComponent<Props, State> {
       const errorMessage = `${rejectedFiles[0].type} files are not allowed`
       this.setState({
         status: "ERROR",
-        errorMessage: errorMessage,
+        errorMessage,
       })
 
       return
@@ -79,7 +92,7 @@ class FileUploader extends React.PureComponent<Props, State> {
         const errorMessage = `The max file size allowed is ${maxSizeMb}MB`
         this.setState({
           status: "ERROR",
-          errorMessage: errorMessage,
+          errorMessage,
         })
 
         return
@@ -142,7 +155,20 @@ class FileUploader extends React.PureComponent<Props, State> {
     return (
       <div className="uploadStatus uploadProgress">
         <span className="body">
-          <Spinner color="secondary" size="sm" /> Uploading...
+          <Spinner
+            size={SCSS_VARS["$file-uploader-spinner-size"]}
+            color={SCSS_VARS.$secondary}
+            overrides={{
+              Svg: {
+                // Hardcoding since FileUploader is being converted
+                style: {
+                  verticalAlign: "baseline",
+                  marginRight: "0.375rem",
+                },
+              },
+            }}
+          />
+          <span>Uploading...</span>
         </span>
         <Button color="link" onClick={this.cancelCurrentUpload}>
           Cancel
@@ -164,7 +190,7 @@ class FileUploader extends React.PureComponent<Props, State> {
     const accept: string[] = element
       .get("type")
       .toArray()
-      .map((value: string) => "." + value)
+      .map((value: string) => `.${value}`)
 
     const multipleFiles: boolean = element.get("multipleFiles")
 
@@ -216,17 +242,22 @@ class FileUploader extends React.PureComponent<Props, State> {
     const { element } = this.props
     const label: string = element.get("label")
 
+    let renderFunction
+    if (status === "ERROR") {
+      renderFunction = this.renderErrorMessage
+    } else if (status === "UPLOADING") {
+      renderFunction = this.renderUploadingMessage
+    } else {
+      renderFunction = this.renderFileUploader
+    }
+
     // The BaseWeb file uploader is not particularly configurable, so we hack it here by replacing
     // the uploader with our own UI where appropriate.
     return (
       <div className="Widget stFileUploader">
         <label>{label}</label>
 
-        {status === "ERROR"
-          ? this.renderErrorMessage()
-          : status === "UPLOADING"
-          ? this.renderUploadingMessage()
-          : this.renderFileUploader()}
+        {renderFunction()}
       </div>
     )
   }

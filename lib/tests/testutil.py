@@ -19,16 +19,16 @@ import threading
 import unittest
 
 from streamlit import config
-from streamlit.DeltaGenerator import DeltaGenerator
-from streamlit.ReportQueue import ReportQueue
-from streamlit.ReportThread import REPORT_CONTEXT_ATTR_NAME
-from streamlit.ReportThread import ReportContext
-from streamlit.ReportThread import add_report_ctx
-from streamlit.ReportThread import get_report_ctx
-from streamlit.ReportThread import _WidgetIDSet
+from streamlit.delta_generator import DeltaGenerator
+from streamlit.report_queue import ReportQueue
+from streamlit.report_thread import REPORT_CONTEXT_ATTR_NAME
+from streamlit.report_thread import ReportContext
+from streamlit.report_thread import add_report_ctx
+from streamlit.report_thread import get_report_ctx
+from streamlit.report_thread import _WidgetIDSet
 from streamlit.widgets import Widgets
 from streamlit.proto.BlockPath_pb2 import BlockPath
-from streamlit.UploadedFileManager import UploadedFileManager
+from streamlit.uploaded_file_manager import UploadedFileManager
 
 
 def build_mock_config_get_option(overrides_dict):
@@ -82,6 +82,7 @@ class DeltaGeneratorTestCase(unittest.TestCase):
                 ReportContext(
                     session_id="test session id",
                     enqueue=self.report_queue.enqueue,
+                    query_string="",
                     widgets=Widgets(),
                     widget_ids_this_run=_WidgetIDSet(),
                     uploaded_file_mgr=UploadedFileManager(),
@@ -89,7 +90,7 @@ class DeltaGeneratorTestCase(unittest.TestCase):
             )
 
     def tearDown(self):
-        self.report_queue._clear()
+        self.clear_queue()
         if self.override_root:
             add_report_ctx(threading.current_thread(), self.orig_report_ctx)
 
@@ -109,10 +110,12 @@ class DeltaGeneratorTestCase(unittest.TestCase):
         -------
         Delta
         """
-        # return self.report_queue._queue[index].delta
         deltas = self.get_all_deltas_from_queue()
         return deltas[index]
 
     def get_all_deltas_from_queue(self):
         """Return all the delta messages in our ReportQueue"""
         return [msg.delta for msg in self.report_queue._queue if msg.HasField("delta")]
+
+    def clear_queue(self):
+        self.report_queue._clear()

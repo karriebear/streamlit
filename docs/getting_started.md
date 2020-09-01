@@ -10,14 +10,6 @@ goal is to use Streamlit to create an interactive app for your data or model
 and along the way to use Streamlit to review, debug, perfect, and share your
 code.
 
-Use the links below to jump to a specific section:
-
-```eval_rst
-.. contents::
-    :local:
-    :depth: 1
-```
-
 ## Prerequisites
 
 Before you get started, you're going to need a few things:
@@ -38,7 +30,8 @@ these commands in a virtual environment. This ensures that the dependencies
 pulled in for Streamlit don't impact any other Python projects
 you're working on.
 
-- [pipenv](https://docs.pipenv.org/en/latest/)
+- [pipenv](https://pipenv.pypa.io/en/latest/)
+- [poetry](https://python-poetry.org/)
 - [venv](https://docs.python.org/3/library/venv.html)
 - [virtualenv](https://virtualenv.pypa.io/en/latest/)
 - [conda](https://www.anaconda.com/distribution/)
@@ -49,7 +42,7 @@ you're working on.
 $ pip install streamlit
 ```
 
-Now run the hello world app just to make sure everything it's working:
+Now run the hello world app just to make sure everything is working:
 
 ```bash
 $ streamlit hello
@@ -253,8 +246,7 @@ option = st.sidebar.selectbox(
 Most of the elements you can put into your app can also be put into a sidebar using this syntax:
 `st.sidebar.[element_name]()`. Here are a few examples that show how it's used: `st.sidebar.markdown()`, `st.sidebar.slider()`, `st.sidebar.line_chart()`.
 
-The only exceptions right now are `st.write` (you
-should use `st.sidebar.markdown()` instead), `st.echo`, and `st.spinner`. Rest
+The only exceptions right now are `st.echo` and `st.spinner`. Rest
 assured, though, we're currently working on adding support for those too!
 
 ## Show progress

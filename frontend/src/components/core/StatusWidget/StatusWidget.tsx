@@ -19,7 +19,8 @@ import { RERUN_PROMPT_MODAL_DIALOG } from "lib/baseconsts"
 import React, { PureComponent, ReactNode } from "react"
 import { HotKeys } from "react-hotkeys"
 import { CSSTransition } from "react-transition-group"
-import { Button, UncontrolledTooltip } from "reactstrap"
+import { Button } from "reactstrap"
+import Tooltip, { Placement } from "components/shared/Tooltip"
 import { SignalConnection } from "typed-signals"
 
 import { ConnectionState } from "lib/ConnectionState"
@@ -28,11 +29,17 @@ import { SessionEventDispatcher } from "lib/SessionEventDispatcher"
 import { ReportRunState } from "lib/ReportRunState"
 import { Timer } from "lib/Timer"
 import Icon from "components/shared/Icon"
+
+/*
+ * IMPORTANT: If you change the asset import below, make sure it still works if Streamlit is served
+ * from a subpath.
+ */
 import iconRunning from "assets/img/icon_running.gif"
+
 import "./StatusWidget.scss"
 
 /** Component props */
-interface Props {
+export interface StatusWidgetProps {
   /** State of our connection to the server. */
   connectionState: ConnectionState
 
@@ -99,17 +106,19 @@ const PROMPT_DISPLAY_HOVER_TIMEOUT_MS = 1.0 * 1000
  * connection status, the run-state of our report, and transient report-related
  * events.
  */
-export class StatusWidget extends PureComponent<Props, State> {
+class StatusWidget extends PureComponent<StatusWidgetProps, State> {
   /** onSessionEvent signal connection */
   private sessionEventConn?: SignalConnection
+
   private curView?: ReactNode
 
   private readonly minimizePromptTimer = new Timer()
+
   private readonly keyHandlers: {
     [key: string]: (keyEvent?: KeyboardEvent) => void
   }
 
-  constructor(props: Props) {
+  constructor(props: StatusWidgetProps) {
     super(props)
 
     this.state = {
@@ -128,7 +137,9 @@ export class StatusWidget extends PureComponent<Props, State> {
   }
 
   /** Called by React on prop changes */
-  public static getDerivedStateFromProps(props: Props): Partial<State> | null {
+  public static getDerivedStateFromProps(
+    props: StatusWidgetProps
+  ): Partial<State> | null {
     // Reset transient event-related state when prop changes
     // render that state irrelevant
     if (props.reportRunState === ReportRunState.RUNNING) {
@@ -237,10 +248,8 @@ export class StatusWidget extends PureComponent<Props, State> {
         // re-running the report in a second or two, but we can appear
         // more responsive by claiming it's started immemdiately.
         return this.renderReportIsRunning()
-      } else if (
-        !RERUN_PROMPT_MODAL_DIALOG &&
-        this.state.reportChangedOnDisk
-      ) {
+      }
+      if (!RERUN_PROMPT_MODAL_DIALOG && this.state.reportChangedOnDisk) {
         return this.renderRerunReportPrompt()
       }
     }
@@ -256,7 +265,10 @@ export class StatusWidget extends PureComponent<Props, State> {
     }
 
     return (
-      <div>
+      <Tooltip
+        content={() => <div>{ui.tooltip}</div>}
+        placement={Placement.BOTTOM}
+      >
         <div
           id="ConnectionStatus"
           className={this.state.statusMinimized ? "minimized" : ""}
@@ -264,10 +276,7 @@ export class StatusWidget extends PureComponent<Props, State> {
           <Icon className="icon" type={ui.icon} />
           <label>{ui.label}</label>
         </div>
-        <UncontrolledTooltip placement="bottom" target="ConnectionStatus">
-          {ui.tooltip}
-        </UncontrolledTooltip>
-      </div>
+      </Tooltip>
     )
   }
 
@@ -281,6 +290,10 @@ export class StatusWidget extends PureComponent<Props, State> {
       this.handleStopReportClick
     )
 
+    const runningIcon = (
+      <img className="ReportRunningIcon" src={iconRunning} alt="Running..." />
+    )
+
     return (
       <div
         id="ReportStatus"
@@ -288,20 +301,18 @@ export class StatusWidget extends PureComponent<Props, State> {
           this.state.statusMinimized ? "report-is-running-minimized" : ""
         }
       >
-        <img
-          className="ReportRunningIcon"
-          src={iconRunning}
-          alt="Running..."
-        />
+        {this.state.statusMinimized ? (
+          <Tooltip
+            placement={Placement.BOTTOM}
+            content={() => <div>This script is currently running</div>}
+          >
+            {runningIcon}
+          </Tooltip>
+        ) : (
+          runningIcon
+        )}
         <label>Running...</label>
         {stopButton}
-        {this.state.statusMinimized ? (
-          <UncontrolledTooltip placement="bottom" target="ReportStatus">
-            This script is currently running
-          </UncontrolledTooltip>
-        ) : (
-          ""
-        )}
       </div>
     )
   }
@@ -413,3 +424,5 @@ export class StatusWidget extends PureComponent<Props, State> {
     }
   }
 }
+
+export default StatusWidget

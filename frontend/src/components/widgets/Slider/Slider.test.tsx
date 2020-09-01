@@ -16,10 +16,12 @@
  */
 
 import React from "react"
-import { shallow } from "enzyme"
+import { mount, shallow } from "enzyme"
 import { fromJS } from "immutable"
 import { sliderOverrides } from "lib/widgetTheme"
+import { Slider as SliderProto } from "autogen/proto"
 import { Slider as UISlider } from "baseui/slider"
+import TimezoneMock from "timezone-mock"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 
 import Slider, { Props } from "./Slider"
@@ -27,7 +29,7 @@ import Slider, { Props } from "./Slider"
 jest.mock("lib/WidgetStateManager")
 
 const sendBackMsg = jest.fn()
-const getProps = (elementProps: object = {}): Props => ({
+const getProps = (elementProps: Record<string, unknown> = {}): Props => ({
   element: fromJS({
     id: 1,
     label: "Label",
@@ -36,6 +38,7 @@ const getProps = (elementProps: object = {}): Props => ({
     min: 0,
     max: 10,
     step: 1,
+    options: [],
     ...elementProps,
   }),
   width: 0,
@@ -256,6 +259,155 @@ describe("Slider widget", () => {
         { fromUi: true }
       )
       expect(wrapper.find(UISlider).prop("value")).toStrictEqual([1, 10])
+    })
+  })
+
+  describe("Datetime slider", () => {
+    TimezoneMock.register("UTC")
+
+    it("should be in UTC", () => {
+      // We use a less idiomiatic Jest call, since getTimezoneOffset can return
+      // -0, and Object.is(-0, 0) is false: https://stackoverflow.com/a/59343755
+      expect(new Date().getTimezoneOffset() === 0).toBeTruthy()
+    })
+
+    const WEEK_IN_MICROS = 7 * 24 * 60 * 60 * 1000 * 1000
+    const props = getProps({
+      min: 0,
+      max: 4 * WEEK_IN_MICROS,
+      format: "YYYY-MM-DD",
+      dataType: SliderProto.DataType.DATETIME,
+    })
+    const wrapper = shallow(<Slider {...props} />)
+
+    it("should format the value as a date", () => {
+      // @ts-ignore
+      const thumbValue = wrapper
+        .find(UISlider)
+        .prop("overrides")
+        // @ts-ignore
+        .ThumbValue({
+          $thumbIndex: 0,
+          $value: [2 * WEEK_IN_MICROS],
+        })
+
+      const thumbValueWrapper = shallow(thumbValue)
+
+      expect(thumbValueWrapper.text()).toBe("1970-01-15")
+    })
+
+    it("should format min and max as dates", () => {
+      // @ts-ignore
+      const thumbValue = wrapper
+        .find(UISlider)
+        .prop("overrides")
+        // @ts-ignore
+        .TickBar()
+
+      const thumbValueWrapper = shallow(thumbValue)
+
+      expect(thumbValueWrapper.find(".tickBarMin").text()).toBe("1970-01-01")
+      expect(thumbValueWrapper.find(".tickBarMax").text()).toBe("1970-01-29")
+    })
+  })
+
+  describe("Options prop", () => {
+    it("renders without crashing", () => {
+      const props = getProps({
+        default: [1],
+        min: 0,
+        max: 6,
+        format: "%s",
+        options: [
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "blue",
+          "indigo",
+          "violet",
+        ],
+      })
+      const wrapper = mount(<Slider {...props} />)
+
+      expect(wrapper).toBeDefined()
+    })
+
+    it("sets aria-valuetext correctly", () => {
+      const props = getProps({
+        default: [1],
+        min: 0,
+        max: 6,
+        format: "%s",
+        options: [
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "blue",
+          "indigo",
+          "violet",
+        ],
+      })
+      const wrapper = mount(<Slider {...props} />)
+      const sliderDOMNodes = wrapper.find("div[role='slider']")
+      sliderDOMNodes.forEach(node => {
+        expect(node.getDOMNode().getAttribute("aria-valuetext")).toEqual(
+          "orange"
+        )
+      })
+    })
+
+    it("updates aria-valuetext correctly", () => {
+      const originalProps = {
+        default: [1],
+        min: 0,
+        max: 6,
+        format: "%s",
+        options: [
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "blue",
+          "indigo",
+          "violet",
+        ],
+      }
+      const props = getProps(originalProps)
+      const wrapper = mount(<Slider {...props} />)
+      wrapper.setState({ value: [4] })
+      const sliderDOMNodes = wrapper.find("div[role='slider']")
+      sliderDOMNodes.forEach(node => {
+        expect(node.getDOMNode().getAttribute("aria-valuetext")).toEqual(
+          "blue"
+        )
+      })
+    })
+
+    it("sets aria-valuetext correctly for a range", () => {
+      const props = getProps({
+        default: [1, 4],
+        min: 0,
+        max: 6,
+        format: "%s",
+        options: [
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "blue",
+          "indigo",
+          "violet",
+        ],
+      })
+      const wrapper = mount(<Slider {...props} />)
+      const sliderDOMNodes = wrapper.find("div[role='slider']")
+      const ariaTexts = sliderDOMNodes.map(node =>
+        node.getDOMNode().getAttribute("aria-valuetext")
+      )
+
+      expect(ariaTexts).toEqual(["orange", "blue"])
     })
   })
 })

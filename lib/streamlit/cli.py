@@ -17,6 +17,7 @@
 from streamlit import config as _config
 
 import os
+import re
 from typing import Optional
 
 import click
@@ -54,7 +55,7 @@ def _convert_config_option_to_click_option(config_option):
     description = config_option.description
     if config_option.deprecated:
         description += "\n {} - {}".format(
-            config_option.deprecation_text, config_option.deprecation_date
+            config_option.deprecation_text, config_option.expiration_date
         )
     envvar = "STREAMLIT_{}".format(to_snake_case(param).upper())
 
@@ -69,7 +70,7 @@ def _convert_config_option_to_click_option(config_option):
 
 def configurator_options(func):
     """Decorator that adds config param keys to click dynamically."""
-    for _, value in reversed(_config._config_options.items()):  # type: ignore[call-overload]
+    for _, value in reversed(_config._config_options.items()):
         parsed_parameter = _convert_config_option_to_click_option(value)
         config_option = click.option(
             parsed_parameter["option"],
@@ -92,15 +93,21 @@ def _apply_config_options_from_cli(kwargs):
     config.toml file
 
     """
+    # Parse config files first before setting CLI args.
+    # Prevents CLI args from being overwritten
+    if not _config._config_file_has_been_parsed:
+        _config.parse_config_file()
+
     for config_option in kwargs:
         if kwargs[config_option] is not None:
             config_option_def_key = config_option.replace("_", ".")
-
             _config._set_option(
                 config_option_def_key,
                 kwargs[config_option],
                 "command-line argument or environment variable",
             )
+
+    _config._on_config_parsed.send()
 
 
 # Fetch remote file at url_path to script_path
@@ -176,14 +183,7 @@ def main_hello(**kwargs):
     from streamlit.hello import hello
 
     _apply_config_options_from_cli(kwargs)
-
     filename = hello.__file__
-
-    # For Python 2 when Streamlit is actually installed (make install rather
-    # than make develop).
-    if filename.endswith(".pyc"):
-        filename = "%s.py" % filename[:-4]
-
     _main_run(filename)
 
 

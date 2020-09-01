@@ -24,10 +24,12 @@ import tempfile
 import time
 import types
 import torch
+import torchvision
 import unittest
 import urllib
 from io import BytesIO
 from io import StringIO
+from unittest.mock import patch, MagicMock
 
 import altair.vegalite.v3
 import numpy as np
@@ -35,22 +37,25 @@ import pandas as pd
 import pytest
 import sqlalchemy as db
 import torch
-from mock import patch, MagicMock
 from parameterized import parameterized
+
+try:
+    import keras
+except ImportError:
+    pass
 
 try:
     import tensorflow as tf
 except ImportError:
     pass
 
-from streamlit.hashing import InternalHashError
+from streamlit.hashing import InternalHashError, _FFI_TYPE_NAMES
 from streamlit.hashing import UnhashableTypeError
 from streamlit.hashing import UserHashError
 from streamlit.hashing import _CodeHasher
 from streamlit.hashing import _NP_SIZE_LARGE
 from streamlit.hashing import _PANDAS_ROWS_LARGE
-from streamlit.type_util import is_type
-from streamlit.util import functools_wraps
+from streamlit.type_util import is_type, get_fqn_type
 import streamlit as st
 
 from tests import testutil
@@ -95,6 +100,20 @@ class HashTest(unittest.TestCase):
         b = [1, 2, 3]
         b.append(b)
         self.assertEqual(get_hash(a), get_hash(b))
+
+    def test_recursive_hash_func(self):
+        def hash_int(x):
+            return x
+
+        @st.cache(hash_funcs={int: hash_int})
+        def foo(x):
+            return x
+
+        self.assertEqual(foo(1), foo(1))
+        # Note: We're able to break the recursive cycle caused by the identity
+        # hash func but it causes all cycles to hash to the same thing.
+        # https://github.com/streamlit/streamlit/issues/1659
+        # self.assertNotEqual(foo(2), foo(1))
 
     def test_tuple(self):
         self.assertEqual(get_hash((1, 2)), get_hash((1, 2)))
@@ -358,6 +377,49 @@ class HashTest(unittest.TestCase):
             f.seek(0)
             self.assertEqual(h1, get_hash(f))
 
+    @testutil.requires_tensorflow
+    def test_keras_model(self):
+        a = keras.applications.vgg16.VGG16(include_top=False, weights=None)
+        b = keras.applications.vgg16.VGG16(include_top=False, weights=None)
+
+        # This test still passes if we remove the default hash func for Keras
+        # models. Ideally we'd seed the weights before creating the models
+        # but not clear how to do so.
+        self.assertEqual(get_hash(a), get_hash(a))
+        self.assertNotEqual(get_hash(a), get_hash(b))
+
+    @testutil.requires_tensorflow
+    def test_tf_keras_model(self):
+        a = tf.keras.applications.vgg16.VGG16(include_top=False, weights=None)
+        b = tf.keras.applications.vgg16.VGG16(include_top=False, weights=None)
+
+        self.assertEqual(get_hash(a), get_hash(a))
+        self.assertNotEqual(get_hash(a), get_hash(b))
+
+    @testutil.requires_tensorflow
+    def test_tf_saved_model(self):
+        tempdir = tempfile.TemporaryDirectory()
+
+        model = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Dense(512, activation="relu", input_shape=(784,)),
+            ]
+        )
+        model.save(tempdir.name)
+
+        a = tf.saved_model.load(tempdir.name)
+        b = tf.saved_model.load(tempdir.name)
+
+        self.assertEqual(get_hash(a), get_hash(a))
+        self.assertNotEqual(get_hash(a), get_hash(b))
+
+    def test_pytorch_model(self):
+        a = torchvision.models.resnet.resnet18()
+        b = torchvision.models.resnet.resnet18()
+
+        self.assertEqual(get_hash(a), get_hash(a))
+        self.assertNotEqual(get_hash(a), get_hash(b))
+
     def test_socket(self):
         a = socket.socket()
         b = socket.socket()
@@ -417,7 +479,8 @@ class HashTest(unittest.TestCase):
         id_hash_func = {types.GeneratorType: id}
 
         self.assertEqual(
-            get_hash(g, hash_funcs=id_hash_func), get_hash(g, hash_funcs=id_hash_func),
+            get_hash(g, hash_funcs=id_hash_func),
+            get_hash(g, hash_funcs=id_hash_func),
         )
 
         unique_hash_func = {types.GeneratorType: lambda x: time.time()}
@@ -457,7 +520,7 @@ class HashTest(unittest.TestCase):
 
         # Note: We've verified that all properties on CompiledFFI objects
         # are global, except have not verified `error` either way.
-        assert is_type(foo, "builtins.CompiledFFI")
+        self.assertIn(get_fqn_type(foo), _FFI_TYPE_NAMES)
         self.assertEqual(get_hash(foo), get_hash(bar))
 
     def test_sqlite_sqlalchemy_engine(self):
@@ -512,7 +575,8 @@ class HashTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            hash_engine(auth_url), hash_engine("%s=%s" % (url, params_foo)),
+            hash_engine(auth_url),
+            hash_engine("%s=%s" % (url, params_foo)),
         )
         self.assertNotEqual(
             hash_engine("%s=%s" % (url, params_foo)),
@@ -927,7 +991,7 @@ class CodeHashTest(unittest.TestCase):
         """Test decorated functions."""
 
         def do(func):
-            @functools_wraps(func)
+            @functools.wraps(func)
             def wrapper_do(*args, **kwargs):
                 return func(*args, **kwargs)
 

@@ -466,13 +466,16 @@ function parseGetters(type: any, spec: any): void {
       return
     }
     const v = spec[key]
-    spec[key] =
-      typeof v === "function"
-        ? v // Leave functions untouched.
-        : typeof v === "string"
-        ? (d: any) => d[v] // Make getters from strings.
-        : () => v // Make constant function otherwise.
+    if (typeof v === "function") {
+      // Leave functions untouched.
+    } else if (typeof v === "string") {
+      spec[key] = (d: any) => d[v] // Make getters from strings.
+    } else {
+      spec[key] = () => v // Make constant function otherwise.
+    }
   })
 }
 
-export default withMapboxToken(withFullScreenWrapper(DeckGlChart))
+export default withMapboxToken("st.deck_gl_chart")(
+  withFullScreenWrapper(DeckGlChart)
+)

@@ -78,7 +78,6 @@ def _modify_ast_subtree(tree, body_attr="body", is_root=False):
 
     if is_root:
         # Import Streamlit so we can use it in the new_value above.
-        # IMPORTANT: This breaks Python 2 due to line numbering issues.
         _insert_import_statement(tree)
 
     ast.fix_missing_locations(tree)
@@ -175,6 +174,6 @@ def _get_st_write_from_expr(node, i, parent_type):
 
 def _is_docstring_node(node):
     if sys.version_info >= (3, 8, 0):
-        return type(node) is ast.Constant and type(node.value) is str  # type: ignore[attr-defined]
+        return type(node) is ast.Constant and type(node.value) is str
     else:
         return type(node) is ast.Str

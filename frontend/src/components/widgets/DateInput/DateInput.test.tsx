@@ -21,8 +21,8 @@ import { fromJS } from "immutable"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 import { DateInput as DateInputProto } from "autogen/proto"
 
-import DateInput, { Props } from "./DateInput"
 import { Datepicker as UIDatePicker } from "baseui/datepicker"
+import DateInput, { Props } from "./DateInput"
 
 jest.mock("lib/WidgetStateManager")
 
@@ -32,7 +32,7 @@ const getProps = (elementProps: Partial<DateInputProto> = {}): Props => ({
   element: fromJS({
     id: 1,
     label: "Label",
-    default: "1970/01/01",
+    default: ["1970/01/01"],
     min: "1970/1/1",
     ...elementProps,
   }),
@@ -54,9 +54,9 @@ describe("DateInput widget", () => {
   })
 
   it("should set widget value on did mount", () => {
-    expect(props.widgetMgr.setStringValue).toHaveBeenCalledWith(
+    expect(props.widgetMgr.setStringArrayValue).toHaveBeenCalledWith(
       props.element.get("id"),
-      props.element.get("default"),
+      props.element.get("default").toJS(),
       { fromUi: false }
     )
   })
@@ -76,9 +76,9 @@ describe("DateInput widget", () => {
   })
 
   it("should render a default value", () => {
-    expect(wrapper.find(UIDatePicker).prop("value")).toStrictEqual(
-      new Date(props.element.get("default"))
-    )
+    expect(wrapper.find(UIDatePicker).prop("value")).toStrictEqual([
+      new Date(props.element.get("default").toJS()),
+    ])
   })
 
   it("could be disabled", () => {
@@ -97,10 +97,10 @@ describe("DateInput widget", () => {
       date: newDate,
     })
 
-    expect(wrapper.find(UIDatePicker).prop("value")).toStrictEqual(newDate)
-    expect(props.widgetMgr.setStringValue).toHaveBeenCalledWith(
+    expect(wrapper.find(UIDatePicker).prop("value")).toStrictEqual([newDate])
+    expect(props.widgetMgr.setStringArrayValue).toHaveBeenCalledWith(
       props.element.get("id"),
-      "2020/02/06",
+      ["2020/02/06"],
       { fromUi: true }
     )
   })
@@ -120,6 +120,28 @@ describe("DateInput widget", () => {
 
     expect(wrapper.find(UIDatePicker).prop("maxDate")).toStrictEqual(
       new Date("2030/02/06")
+    )
+  })
+
+  it("should handle min dates with years less than 100", () => {
+    const props = getProps({
+      min: "0001/01/01",
+    })
+    const wrapper = shallow(<DateInput {...props} />)
+
+    expect(wrapper.find(UIDatePicker).prop("minDate")).toStrictEqual(
+      new Date("0001-01-01T00:00:00")
+    )
+  })
+
+  it("should handle max dates with years less than 100", () => {
+    const props = getProps({
+      max: "0001/01/01",
+    })
+    const wrapper = shallow(<DateInput {...props} />)
+
+    expect(wrapper.find(UIDatePicker).prop("maxDate")).toStrictEqual(
+      new Date("0001-01-01T00:00:00")
     )
   })
 })

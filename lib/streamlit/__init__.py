@@ -90,21 +90,19 @@ import sys as _sys
 import textwrap as _textwrap
 import threading as _threading
 import traceback as _traceback
-import types as _types
-import json as _json
-import numpy as _np
+import urllib.parse as _parse
 
 from streamlit import code_util as _code_util
 from streamlit import env_util as _env_util
 from streamlit import source_util as _source_util
 from streamlit import string_util as _string_util
-from streamlit import type_util as _type_util
-from streamlit.DeltaGenerator import DeltaGenerator as _DeltaGenerator
-from streamlit.ReportThread import add_report_ctx as _add_report_ctx
-from streamlit.ReportThread import get_report_ctx as _get_report_ctx
+from streamlit.delta_generator import DeltaGenerator as _DeltaGenerator
+from streamlit.report_thread import add_report_ctx as _add_report_ctx
+from streamlit.report_thread import get_report_ctx as _get_report_ctx
+from streamlit.script_runner import StopException
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto import BlockPath_pb2 as _BlockPath_pb2
-from streamlit.util import functools_wraps as _functools_wraps
+from streamlit.proto import ForwardMsg_pb2 as _ForwardMsg_pb2
 
 # Modules that the user should have access to. These are imported with "as"
 # syntax pass mypy checking with implicit_reexport disabled.
@@ -116,15 +114,16 @@ from streamlit.caching import cache as cache  # noqa: F401
 _is_running_with_streamlit = False
 
 
-def _set_log_level():
-    _logger.set_log_level(_config.get_option("global.logLevel").upper())
+def _update_logger():
+    _logger.set_log_level(_config.get_option("logger.level").upper())
+    _logger.update_formatter()
     _logger.init_tornado_logs()
 
 
 # Make this file only depend on config option in an asynchronous manner. This
 # avoids a race condition when another file (such as a test file) tries to pass
 # in an alternative config.
-_config.on_config_parsed(_set_log_level)
+_config.on_config_parsed(_update_logger, True)
 
 
 _main = _DeltaGenerator(container=_BlockPath_pb2.BlockPath.MAIN)
@@ -166,6 +165,7 @@ progress = _main.progress  # noqa: E221
 pyplot = _main.pyplot  # noqa: E221
 radio = _main.radio  # noqa: E221
 selectbox = _main.selectbox  # noqa: E221
+select_slider = _main.select_slider  # noqa: E221
 slider = _main.slider  # noqa: E221
 subheader = _main.subheader  # noqa: E221
 success = _main.success  # noqa: E221
@@ -178,19 +178,22 @@ title = _main.title  # noqa: E221
 vega_lite_chart = _main.vega_lite_chart  # noqa: E221
 video = _main.video  # noqa: E221
 warning = _main.warning  # noqa: E221
+write = _main.write  # noqa: E221
 beta_color_picker = _main.beta_color_picker  # noqa: E221
 
 # Config
 
 get_option = _config.get_option
+from streamlit.commands.page_config import beta_set_page_config
 
 
 def set_option(key, value):
     """Set config option.
 
-    Currently, only two config options can be set within the script itself:
+    Currently, only the following config options can be set within the script itself:
         * client.caching
         * client.displayEnabled
+        * deprecation.*
 
     Calling with any other options will raise StreamlitAPIException.
 
@@ -218,199 +221,6 @@ def set_option(key, value):
     )
 
 
-# Special methods:
-
-_HELP_TYPES = (
-    _types.BuiltinFunctionType,
-    _types.BuiltinMethodType,
-    _types.FunctionType,
-    _types.MethodType,
-    _types.ModuleType,
-)  # type: Tuple[Type[Any], ...]
-
-
-def write(*args, **kwargs):
-    """Write arguments to the app.
-
-    This is the Swiss Army knife of Streamlit commands: it does different
-    things depending on what you throw at it. Unlike other Streamlit commands,
-    write() has some unique properties:
-
-    1. You can pass in multiple arguments, all of which will be written.
-    2. Its behavior depends on the input types as follows.
-    3. It returns None, so it's "slot" in the App cannot be reused.
-
-    Parameters
-    ----------
-    *args : any
-        One or many objects to print to the App.
-
-        Arguments are handled as follows:
-
-        - write(string)     : Prints the formatted Markdown string, with
-            support for LaTeX expression and emoji shortcodes.
-            See docs for st.markdown for more.
-        - write(data_frame) : Displays the DataFrame as a table.
-        - write(error)      : Prints an exception specially.
-        - write(func)       : Displays information about a function.
-        - write(module)     : Displays information about the module.
-        - write(dict)       : Displays dict in an interactive widget.
-        - write(obj)        : The default is to print str(obj).
-        - write(mpl_fig)    : Displays a Matplotlib figure.
-        - write(altair)     : Displays an Altair chart.
-        - write(keras)      : Displays a Keras model.
-        - write(graphviz)   : Displays a Graphviz graph.
-        - write(plotly_fig) : Displays a Plotly figure.
-        - write(bokeh_fig)  : Displays a Bokeh figure.
-        - write(sympy_expr) : Prints SymPy expression using LaTeX.
-
-    unsafe_allow_html : bool
-        This is a keyword-only argument that defaults to False.
-
-        By default, any HTML tags found in strings will be escaped and
-        therefore treated as pure text. This behavior may be turned off by
-        setting this argument to True.
-
-        That said, *we strongly advise* against it*. It is hard to write secure
-        HTML, so by using this argument you may be compromising your users'
-        security. For more information, see:
-
-        https://github.com/streamlit/streamlit/issues/152
-
-        **Also note that `unsafe_allow_html` is a temporary measure and may be
-        removed from Streamlit at any time.**
-
-        If you decide to turn on HTML anyway, we ask you to please tell us your
-        exact use case here:
-        https://discuss.streamlit.io/t/96 .
-
-        This will help us come up with safe APIs that allow you to do what you
-        want.
-
-    Example
-    -------
-
-    Its simplest use case is to draw Markdown-formatted text, whenever the
-    input is a string:
-
-    >>> write('Hello, *World!* :sunglasses:')
-
-    .. output::
-       https://share.streamlit.io/0.50.2-ZWk9/index.html?id=Pn5sjhgNs4a8ZbiUoSTRxE
-       height: 50px
-
-    As mentioned earlier, `st.write()` also accepts other data formats, such as
-    numbers, data frames, styled data frames, and assorted objects:
-
-    >>> st.write(1234)
-    >>> st.write(pd.DataFrame({
-    ...     'first column': [1, 2, 3, 4],
-    ...     'second column': [10, 20, 30, 40],
-    ... }))
-
-    .. output::
-       https://share.streamlit.io/0.25.0-2JkNY/index.html?id=FCp9AMJHwHRsWSiqMgUZGD
-       height: 250px
-
-    Finally, you can pass in multiple arguments to do things like:
-
-    >>> st.write('1 + 1 = ', 2)
-    >>> st.write('Below is a DataFrame:', data_frame, 'Above is a dataframe.')
-
-    .. output::
-       https://share.streamlit.io/0.25.0-2JkNY/index.html?id=DHkcU72sxYcGarkFbf4kK1
-       height: 300px
-
-    Oh, one more thing: `st.write` accepts chart objects too! For example:
-
-    >>> import pandas as pd
-    >>> import numpy as np
-    >>> import altair as alt
-    >>>
-    >>> df = pd.DataFrame(
-    ...     np.random.randn(200, 3),
-    ...     columns=['a', 'b', 'c'])
-    ...
-    >>> c = alt.Chart(df).mark_circle().encode(
-    ...     x='a', y='b', size='c', color='c', tooltip=['a', 'b', 'c'])
-    >>>
-    >>> st.write(c)
-
-    .. output::
-       https://share.streamlit.io/0.25.0-2JkNY/index.html?id=8jmmXR8iKoZGV4kXaKGYV5
-       height: 200px
-
-    """
-    try:
-        string_buffer = []  # type: List[str]
-        unsafe_allow_html = kwargs.get("unsafe_allow_html", False)
-
-        def flush_buffer():
-            if string_buffer:
-                markdown(
-                    " ".join(string_buffer), unsafe_allow_html=unsafe_allow_html,
-                )  # noqa: F821
-                string_buffer[:] = []
-
-        for arg in args:
-            # Order matters!
-            if isinstance(arg, str):
-                string_buffer.append(arg)
-            elif _type_util.is_dataframe_like(arg):
-                flush_buffer()
-                if len(_np.shape(arg)) > 2:
-                    text(arg)
-                else:
-                    dataframe(arg)  # noqa: F821
-            elif isinstance(arg, Exception):
-                flush_buffer()
-                exception(arg)  # noqa: F821
-            elif isinstance(arg, _HELP_TYPES):
-                flush_buffer()
-                help(arg)
-            elif _type_util.is_altair_chart(arg):
-                flush_buffer()
-                altair_chart(arg)
-            elif _type_util.is_type(arg, "matplotlib.figure.Figure"):
-                flush_buffer()
-                pyplot(arg)
-            elif _type_util.is_plotly_chart(arg):
-                flush_buffer()
-                plotly_chart(arg)
-            elif _type_util.is_type(arg, "bokeh.plotting.figure.Figure"):
-                flush_buffer()
-                bokeh_chart(arg)
-            elif _type_util.is_graphviz_chart(arg):
-                flush_buffer()
-                graphviz_chart(arg)
-            elif _type_util.is_sympy_expession(arg):
-                flush_buffer()
-                latex(arg)
-            elif _type_util.is_keras_model(arg):
-                from tensorflow.python.keras.utils import vis_utils
-
-                flush_buffer()
-                dot = vis_utils.model_to_dot(arg)
-                graphviz_chart(dot.to_string())
-            elif isinstance(arg, (dict, list)):
-                flush_buffer()
-                json(arg)
-            elif _type_util.is_namedtuple(arg):
-                flush_buffer()
-                json(_json.dumps(arg._asdict()))
-            elif _type_util.is_pydeck(arg):
-                flush_buffer()
-                pydeck_chart(arg)
-            else:
-                string_buffer.append("`%s`" % str(arg).replace("`", "\\`"))
-
-        flush_buffer()
-
-    except Exception:
-        _, exc, exc_tb = _sys.exc_info()
-        exception(exc, exc_tb)  # noqa: F821
-
-
 def experimental_show(*args):
     """Write arguments and *argument names* to your app for debugging purposes.
 
@@ -420,7 +230,7 @@ def experimental_show(*args):
         2. It returns None, so it's "slot" in the app cannot be reused.
 
     Note: This is an experimental feature. See
-    https://docs.streamlit.io/pre_release_features.html for more information.
+    https://docs.streamlit.io/en/latest/pre_release_features.html for more information.
 
     Parameters
     ----------
@@ -477,7 +287,68 @@ def experimental_show(*args):
 
     except Exception:
         _, exc, exc_tb = _sys.exc_info()
-        exception(exc, exc_tb)  # noqa: F821
+        exception(exc)
+
+
+def experimental_get_query_params():
+    """Return the query parameters that is currently showing in the browser's URL bar.
+
+    Returns
+    -------
+    dict
+      The current query parameters as a dict. "Query parameters" are the part of the URL that comes
+      after the first "?".
+
+    Example
+    -------
+
+    Let's say the user's web browser is at
+    `http://localhost:8501/?show_map=True&selected=asia&selected=america`.
+    Then, you can get the query parameters using the following:
+
+    >>> st.experimental_get_query_params()
+    {"show_map": ["True"], "selected": ["asia", "america"]}
+
+    Note that the values in the returned dict are *always* lists. This is
+    because we internally use Python's urllib.parse.parse_qs(), which behaves
+    this way. And this behavior makes sense when you consider that every item
+    in a query string is potentially a 1-element array.
+
+    """
+    ctx = _get_report_ctx()
+    if ctx is None:
+        return ""
+    return _parse.parse_qs(ctx.query_string)
+
+
+def experimental_set_query_params(**query_params):
+    """Set the query parameters that are shown in the browser's URL bar.
+
+    Parameters
+    ----------
+    **query_params : dict
+        The query parameters to set, as key-value pairs.
+
+    Example
+    -------
+
+    To point the user's web browser to something like
+    "http://localhost:8501/?show_map=True&selected=asia&selected=america",
+    you would do the following:
+
+    >>> st.experimental_set_query_params(
+    ...     show_map=True,
+    ...     selected=["asia", "america"],
+    ... )
+
+    """
+    ctx = _get_report_ctx()
+    if ctx is None:
+        return
+    ctx.query_string = _parse.urlencode(query_params, doseq=True)
+    msg = _ForwardMsg_pb2.ForwardMsg()
+    msg.page_info_changed.query_string = ctx.query_string
+    ctx.enqueue(msg)
 
 
 @_contextlib.contextmanager
@@ -537,8 +408,14 @@ _SPACES_RE = _re.compile("\\s*")
 
 
 @_contextlib.contextmanager
-def echo():
+def echo(code_location="above"):
     """Use in a `with` block to draw some code on the app, then execute it.
+
+    Parameters
+    ----------
+    code_location : "above" or "below"
+        Whether to show the echoed code before or after the results of the
+        executed code block.
 
     Example
     -------
@@ -547,7 +424,14 @@ def echo():
     >>>     st.write('This code will be printed')
 
     """
-    code = empty()  # noqa: F821
+    if code_location == "below":
+        show_code = code
+        show_warning = warning
+    else:
+        placeholder = empty()  # noqa: F821
+        show_code = placeholder.code
+        show_warning = placeholder.warning
+
     try:
         frame = _traceback.extract_stack()[-3]
         filename, start_line = frame.filename, frame.lineno
@@ -568,10 +452,11 @@ def echo():
                     break
                 lines_to_display.append(line)
         line_to_display = _textwrap.dedent("".join(lines_to_display))
-        code.code(line_to_display, "python")
+
+        show_code(line_to_display, "python")
 
     except FileNotFoundError as err:
-        code.warning("Unable to display code. %s" % err)
+        show_warning("Unable to display code. %s" % err)
 
 
 def _transparent_write(*args):
@@ -624,3 +509,23 @@ def _maybe_print_repl_warning():
                 ),
                 script_name,
             )
+
+
+def stop():
+    """Stops execution immediately.
+    
+    Streamlit will not run any statements after `st.stop()`.
+    We recommend rendering a message to explain why the script has stopped.
+    When run outside of Streamlit, this will raise an Exception.
+
+    Example
+    -------
+
+    >>> name = st.text_input('Name')
+    >>> if not name:
+    >>>   st.warning('Please input a name.')
+    >>>   st.stop()
+    >>> st.success('Thank you for inputting a name.')
+
+    """
+    raise StopException()

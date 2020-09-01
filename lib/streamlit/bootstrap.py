@@ -24,9 +24,9 @@ from streamlit import net_util
 from streamlit import url_util
 from streamlit import env_util
 from streamlit import util
-from streamlit.Report import Report
+from streamlit.report import Report
 from streamlit.logger import get_logger
-from streamlit.server.Server import Server
+from streamlit.server.server import Server, server_address_is_unix_socket
 
 LOGGER = get_logger(__name__)
 
@@ -132,7 +132,7 @@ def _fix_sys_argv(script_path, args):
 
 
 def _on_server_start(server):
-    _print_url()
+    _print_url(server.is_running_hello)
 
     def maybe_open_browser():
         if config.get_option("server.headless"):
@@ -148,6 +148,9 @@ def _on_server_start(server):
         if config.is_manually_set("browser.serverAddress"):
             addr = config.get_option("browser.serverAddress")
         elif config.is_manually_set("server.address"):
+            if server_address_is_unix_socket():
+                # Don't open browser when server address is an unix socket
+                return
             addr = config.get_option("server.address")
         else:
             addr = "localhost"
@@ -166,8 +169,12 @@ def _fix_pydeck_mapbox_api_warning():
     os.environ["MAPBOX_API_KEY"] = config.get_option("mapbox.token")
 
 
-def _print_url():
-    title_message = "You can now view your Streamlit app in your browser."
+def _print_url(is_running_hello):
+    if is_running_hello:
+        title_message = "Welcome to Streamlit. Check out our demo in your browser."
+    else:
+        title_message = "You can now view your Streamlit app in your browser."
+
     named_urls = []
 
     if config.is_manually_set("browser.serverAddress"):
@@ -175,7 +182,9 @@ def _print_url():
             ("URL", Report.get_url(config.get_option("browser.serverAddress")))
         ]
 
-    elif config.is_manually_set("server.address"):
+    elif (
+        config.is_manually_set("server.address") and not server_address_is_unix_socket()
+    ):
         named_urls = [
             ("URL", Report.get_url(config.get_option("server.address"))),
         ]
@@ -206,6 +215,14 @@ def _print_url():
         url_util.print_url(url_name, url)
 
     click.secho("")
+
+    if is_running_hello:
+        click.secho("  Ready to create your own Python apps super quickly?")
+        click.secho("  Just head over to ", nl=False)
+        click.secho("https://docs.streamlit.io", bold=True)
+        click.secho("")
+        click.secho("  May you create awesome apps!")
+        click.secho("")
 
 
 def run(script_path, command_line, args):

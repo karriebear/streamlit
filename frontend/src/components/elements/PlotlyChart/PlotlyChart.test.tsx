@@ -15,19 +15,22 @@
  * limitations under the License.
  */
 
-jest.mock("react-plotly.js", () => jest.fn())
-
 import React from "react"
 import { shallow } from "enzyme"
 import { fromJS } from "immutable"
 import Plot from "react-plotly.js"
 
 import mock from "./mock"
-import { PropsWithHeight, DEFAULT_HEIGHT } from "./PlotlyChart"
+import { PlotlyChartProps, DEFAULT_HEIGHT } from "./PlotlyChart"
 
-const PlotlyChart = require("./PlotlyChart").PlotlyChart
+jest.mock("react-plotly.js", () => jest.fn())
 
-const getProps = (elementProps: object = {}): PropsWithHeight => ({
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { PlotlyChart } = require("./PlotlyChart")
+
+const getProps = (
+  elementProps: Record<string, unknown> = {}
+): PlotlyChartProps => ({
   element: fromJS({
     ...mock,
     ...elementProps,

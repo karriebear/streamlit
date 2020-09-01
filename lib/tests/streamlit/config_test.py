@@ -13,18 +13,18 @@
 # limitations under the License.
 
 """Config System Unittest."""
+from unittest.mock import MagicMock, mock_open, patch
 import copy
 import os
 import textwrap
 import unittest
 
 import pytest
-from mock import mock_open
-from mock import patch
+from parameterized import parameterized
 
 from streamlit import config
 from streamlit import env_util
-from streamlit.ConfigOption import ConfigOption
+from streamlit.config_option import ConfigOption
 
 SECTION_DESCRIPTIONS = copy.deepcopy(config._section_descriptions)
 CONFIG_OPTIONS = copy.deepcopy(config._config_options)
@@ -255,7 +255,9 @@ class ConfigTest(unittest.TestCase):
                 "_test",
                 "browser",
                 "client",
+                "deprecation",
                 "global",
+                "logger",
                 "mapbox",
                 "runner",
                 "s3",
@@ -273,6 +275,8 @@ class ConfigTest(unittest.TestCase):
                 "browser.serverPort",
                 "client.caching",
                 "client.displayEnabled",
+                "deprecation.showfileUploaderEncoding",
+                "deprecation.showImageFormat",
                 "global.developmentMode",
                 "global.disableWatchdogWarning",
                 "global.logLevel",
@@ -283,7 +287,8 @@ class ConfigTest(unittest.TestCase):
                 "global.showWarningOnDirectExecution",
                 "global.suppressDeprecationWarnings",
                 "global.unitTest",
-                "global.useNode",
+                "logger.level",
+                "logger.messageFormat",
                 "runner.magicEnabled",
                 "runner.installTracer",
                 "runner.fixMatplotlib",
@@ -295,10 +300,13 @@ class ConfigTest(unittest.TestCase):
                 "s3.region",
                 "s3.secretAccessKey",
                 "s3.url",
-                "server.enableCORS",
                 "server.baseUrlPath",
-                "server.folderWatchBlacklist",
+                "server.enableCORS",
+                "server.cookieSecret",
+                "server.enableWebsocketCompression",
+                "server.enableXsrfProtection",
                 "server.fileWatcherType",
+                "server.folderWatchBlacklist",
                 "server.headless",
                 "server.liveSave",
                 "server.address",
@@ -346,6 +354,14 @@ class ConfigTest(unittest.TestCase):
             str(e.value),
             "server.port does not work when global.developmentMode is true.",
         )
+
+    @patch("streamlit.logger.get_logger")
+    def test_check_conflicts_server_csrf(self, get_logger):
+        config._set_option("server.enableXsrfProtection", True, "test")
+        config._set_option("server.enableCORS", True, "test")
+        mock_logger = get_logger()
+        config._check_conflicts()
+        mock_logger.warning.assert_called_once()
 
     def test_check_conflicts_browser_serverport(self):
         config._set_option("global.developmentMode", True, "test")
@@ -504,11 +520,33 @@ class ConfigTest(unittest.TestCase):
 
     def test_global_log_level_debug(self):
         config.set_option("global.developmentMode", True)
-        self.assertEqual("debug", config.get_option("global.logLevel"))
+        self.assertEqual("debug", config.get_option("logger.level"))
 
     def test_global_log_level(self):
         config.set_option("global.developmentMode", False)
-        self.assertEqual("info", config.get_option("global.logLevel"))
+        self.assertEqual("info", config.get_option("logger.level"))
+
+    @parameterized.expand([(True, True), (True, False), (False, False), (False, True)])
+    def test_on_config_parsed(self, config_parsed, connect_signal):
+        """Tests to make sure callback is handled properly based upon
+        _config_file_has_been_parsed and connect_signal."""
+
+        mock_callback = MagicMock(return_value=None)
+
+        with patch.object(config, "_config_file_has_been_parsed", new=config_parsed):
+            with patch.object(config._on_config_parsed, "connect") as patched_connect:
+                mock_callback.reset_mock()
+                config.on_config_parsed(mock_callback, connect_signal)
+
+                if connect_signal:
+                    patched_connect.assert_called_once()
+                    mock_callback.assert_not_called()
+                elif config_parsed:
+                    patched_connect.assert_not_called()
+                    mock_callback.assert_called_once()
+                else:
+                    patched_connect.assert_called_once()
+                    mock_callback.assert_not_called()
 
 
 class ConfigLoadingTest(unittest.TestCase):

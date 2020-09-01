@@ -16,6 +16,99 @@ This page lists highlights, bug fixes, and known issues for official Streamlit r
       $ pip install --upgrade streamlit
 ```
 
+## Version 0.65.0
+
+_Release date: August 12, 2020_
+
+**Highlights:**
+
+- ⚙️ Ability to set page title, favicon, sidebar state, and wide mode via st.beta_set_page_config(). See our [documentation](https://docs.streamlit.io/en/latest/api.html#streamlit.beta_set_page_config) for details.
+- 📝 Add stateful behaviors through the use of query parameters with st.experimental_set_query_params and st.experimental_get_query_params. Thanks [@zhaoooyue](https://github.com/zhaoooyue)!
+- 🐼 Improved pandas dataframe support for st.radio, st.selectbox, and st.multiselect.
+- 🛑 Break out of your Streamlit app with st.stop.
+- 🖼 Inline SVG support for st.image.
+
+**Callouts:**
+
+- 🚨Deprecation Warning: The st.image parameter format has been renamed to output_format.
+
+## Version 0.64.0
+
+_Release date: July 23, 2020_
+
+**Highlights:**
+
+- 📊 Default matplotlib to display charts with a tight layout. To disable this,
+  set `bbox_inches` to `None`, inches as a string, or a `Bbox`
+- 🗃 Deprecation warning for automatic encoding on `st.file_uploader`
+- 🙈 If `gatherUserStats` is `False`, do not even load the Segment library.
+  Thanks [@tanmaylaud](https://github.com/tanmaylaud)!
+
+## Version 0.63.0
+
+_Release date: July 13, 2020_
+
+**Highlights:**
+
+- 🧩 **Support for Streamlit Components!!!** See
+  [documentation](https://docs.streamlit.io/en/latest/streamlit_components.html) for more info.
+- 🕗 Support for datetimes in
+  [`st.slider`](https://docs.streamlit.io/en/latest/api.html#streamlit.slider). And, of course, just
+  like any other value you use in `st.slider`, you can also pass in two-element lists to get a
+  datetime range slider.
+
+## Version 0.62.0
+
+_Release date: June 21, 2020_
+
+**Highlights:**
+
+- 📨 Ability to turn websocket compression on/off via the config option
+  `server.enableWebsocketCompression`. This is useful if your server strips HTTP headers and you do
+  not have access to change that behavior.
+- 🗝️ Out-of-the-box support for CSRF protection using the
+  [Cookie-to-header token](https://en.wikipedia.org/wiki/Cross-site_request_forgery#Cookie-to-header_token)
+  technique. This means that if you're serving your Streamlit app from multiple replicas you'll need
+  to configure them to to use the same cookie secret with the `server.cookieSecret` config option.
+  To turn XSRF protection off, set `server.enableXsrfProtection=false`.
+
+**Notable bug fixes:**
+
+- 🖼️ Added a grace period to the image cache expiration logic in order to fix multiple related bugs
+  where images sent with `st.image` or `st.pyplot` were sometimes missing.
+
+## Version 0.61.0
+
+_Release date: June 2, 2020_
+
+**Highlights:**
+
+- 📅 Support for date ranges in `st.date_picker`. See
+  [docs](https://docs.streamlit.io/en/latest/api.html#streamlit.date_picker)
+  for more info, but the TLDR is: just pass a list/tuple as the default date and it will be
+  interpreted as a range.
+- 🗣️ You can now choose whether `st.echo` prints the code above or below the output of the echoed
+  block. To learn more, refer to the `code_location` argument in the
+  [docs](https://docs.streamlit.io/en/latest/api.html#streamlit.echo).
+- 📦 Improved `@st.cache` support for Keras models and Tensorflow `saved_models`.
+
+## Version 0.60.0
+
+_Release date: May 18, 2020_
+
+**Highlights:**
+
+- ↕️ Ability to set the height of an `st.text_area` with the `height` argument
+  (expressed in pixels). See
+  [docs](https://docs.streamlit.io/en/latest/api.html#streamlit.text_area) for more.
+- 🔡 Ability to set the maximimum number of characters allowed in `st.text_area`
+  or `st.text_input`. Check out the `max_chars` argument in the
+  [docs](https://docs.streamlit.io/en/latest/api.html#streamlit.text_area).
+- 🗺️ Better DeckGL support for the [H3](https://h3geo.org/) geospatial indexing
+  system. So now you can use things like `H3HexagonLayer` in
+  [`st.pydeck_chart`](https://docs.streamlit.io/en/latest/api.html#streamlit.pydeck_chart).
+- 📦 Improved `@st.cache` support for PyTorch TensorBase and Model.
+
 ## Version 0.59.0
 
 _Release date: May 05, 2020_
@@ -23,10 +116,10 @@ _Release date: May 05, 2020_
 **Highlights:**
 
 - 🎨 New color-picker widget! Use it with
-  [`st.beta_color_picker()`](https://docs.streamlit.io/api.html#streamlit.beta_color_picker)
+  [`st.beta_color_picker()`](https://docs.streamlit.io/en/latest/api.html#streamlit.beta_color_picker)
 - 🧪 Introducing `st.beta_*` and `st.experimental_*` function prefixes, for faster
   Streamlit feature releases. See
-  [docs](https://docs.streamlit.io/pre_release_features.html) for more info.
+  [docs](https://docs.streamlit.io/en/latest/pre_release_features.html) for more info.
 - 📦 Improved `@st.cache` support for SQL Alchemy objects, CompiledFFI, PyTorch
   Tensors, and `builtins.mappingproxy`.
 
@@ -50,7 +143,7 @@ _Release date: March 26, 2020_
 
 - ⏲️ Ability to set expiration options for `@st.cache`'ed functions by setting
   the `max_entries` and `ttl` arguments. See
-  [docs](https://docs.streamlit.io/api.html#streamlit.cache).
+  [docs](https://docs.streamlit.io/en/latest/api.html#streamlit.cache).
 - 🆙 Improved the machinery behind `st.file_uploader`, so it's much more
   performant now! Also increased the default upload limit to 200MB
   (configurable via `server.max_upload_size`).
@@ -115,11 +208,11 @@ _Release date: January 14, 2020_
 
 - 🗺️ Support for all DeckGL features! Just use
   [Pydeck](https://deckgl.readthedocs.io/en/latest/) instead of
-  [`st.deck_gl_chart`](https://docs.streamlit.io/api.html#streamlit.pydeck_chart).
+  [`st.deck_gl_chart`](https://docs.streamlit.io/en/latest/api.html#streamlit.pydeck_chart).
   To do that, simply pass a PyDeck object to
-  [`st.pydeck_chart`](https://docs.streamlit.io/api.html#streamlit.pydeck_chart),
-  [`st.write`](https://docs.streamlit.io/api.html#streamlit.write),
-  or [magic](https://docs.streamlit.io/api.html#magic).
+  [`st.pydeck_chart`](https://docs.streamlit.io/en/latest/api.html#streamlit.pydeck_chart),
+  [`st.write`](https://docs.streamlit.io/en/latest/api.html#streamlit.write),
+  or [magic](https://docs.streamlit.io/en/latest/api.html#magic).
 
   _Note that as a **preview release** things may change in the near future.
   Looking forward to hearing input from the community before we stabilize the
@@ -157,7 +250,7 @@ _Release date: December 20, 2019_
 **Highlights:**
 
 - 📤 Preview release of the file uploader widget. To try it out just call
-  [`st.file_uploader`](https://docs.streamlit.io/api.html#streamlit.file_uploader)!
+  [`st.file_uploader`](https://docs.streamlit.io/en/latest/api.html#streamlit.file_uploader)!
 
   _Note that as a **preview release** things may change in the near future.
   Looking forward to hearing input from the community before we stabilize the
@@ -173,7 +266,7 @@ _Release date: December 20, 2019_
   having to call
   [`pyplot.clf`](https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.clf.html)
   every time. If you want to turn this behavior off, use
-  [`st.pyplot(clear_figure=False)`](https://docs.streamlit.io/api.html#streamlit.pyplot)
+  [`st.pyplot(clear_figure=False)`](https://docs.streamlit.io/en/latest/api.html#streamlit.pyplot)
 - 📣 `st.cache` no longer checks for input mutations. This is the first change
   of our ongoing effort to simplify the caching system and prepare Streamlit
   for the launch of other caching primitives like Session State!
@@ -285,7 +378,7 @@ _Release date: September 19, 2019_
 **Highlights:**
 
 - ✨ Magic commands! Use `st.write` without typing `st.write`. See
-  https://docs.streamlit.io/api.html#magic-commands
+  https://docs.streamlit.io/en/latest/api.html#magic-commands
 - 🎛️ New `st.multiselect` widget.
 - 🐍 Fixed numerous install issues so now you can use `pip install streamlit`
   even in Conda! We've therefore deactivated our Conda repo.

@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-import { NumberInput as NumberInputProto } from "autogen/proto"
 import React from "react"
 import { sprintf } from "sprintf-js"
-import { Input as UIInput } from "baseui/input"
-import { Map as ImmutableMap } from "immutable"
-import { WidgetStateManager, Source } from "lib/WidgetStateManager"
 import { logWarning } from "lib/log"
+import { Map as ImmutableMap } from "immutable"
+import { NumberInput as NumberInputProto } from "autogen/proto"
+import { WidgetStateManager, Source } from "lib/WidgetStateManager"
 
 import Icon from "components/shared/Icon"
+import { Input as UIInput } from "baseui/input"
+import InputInstructions from "components/shared/InputInstructions/InputInstructions"
 
 import "./NumberInput.scss"
 
@@ -107,13 +108,11 @@ class NumberInput extends React.PureComponent<Props, State> {
 
     if (step) {
       return step
-    } else {
-      if (this.isIntData()) {
-        return 1
-      } else {
-        return 0.01
-      }
     }
+    if (this.isIntData()) {
+      return 1
+    }
+    return 0.01
   }
 
   private setWidgetValue = (source: Source): void => {
@@ -127,7 +126,9 @@ class NumberInput extends React.PureComponent<Props, State> {
 
     if (min > value || value > max) {
       const node = this.inputRef.current
-      node && node.reportValidity()
+      if (node) {
+        node.reportValidity()
+      }
     } else {
       const valueToBeSaved = value || value === 0 ? value : data.get("default")
 
@@ -157,7 +158,7 @@ class NumberInput extends React.PureComponent<Props, State> {
     let numValue = null
 
     if (this.isIntData()) {
-      numValue = parseInt(value)
+      numValue = parseInt(value, 10)
     } else {
       numValue = parseFloat(value)
     }
@@ -183,6 +184,7 @@ class NumberInput extends React.PureComponent<Props, State> {
 
         this.modifyValueUsingStep("decrement")()
         break
+      default: // Do nothing
     }
   }
 
@@ -227,6 +229,7 @@ class NumberInput extends React.PureComponent<Props, State> {
           )
         }
         break
+      default: // Do nothing
     }
   }
 
@@ -281,7 +284,11 @@ class NumberInput extends React.PureComponent<Props, State> {
             </button>
           </div>
         </div>
-        {dirty && <div className="instructions">Press Enter to apply</div>}
+        <InputInstructions
+          dirty={dirty}
+          value={formattedValue}
+          className="input-instructions"
+        />
       </div>
     )
   }

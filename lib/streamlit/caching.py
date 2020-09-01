@@ -16,6 +16,7 @@
 
 import ast
 import contextlib
+import functools
 import hashlib
 import inspect
 import math
@@ -40,7 +41,6 @@ from streamlit.hashing import Context
 from streamlit.hashing import update_hash
 from streamlit.hashing import HashReason
 from streamlit.logger import get_logger
-from streamlit.util import functools_wraps
 import streamlit as st
 
 
@@ -497,7 +497,7 @@ def cache(
         "mem_cache key for %s.%s: %s", func.__module__, func.__qualname__, cache_key
     )
 
-    @functools_wraps(func)
+    @functools.wraps(func)
     def wrapped_func(*args, **kwargs):
         """This function wrapper will only call the underlying function in
         the case of a cache miss. Cached objects are stored in the cache/
@@ -848,7 +848,7 @@ How to fix this:
 doing so, just annotate the function with `@st.cache(allow_output_mutation=True)`.
 
 For more information and detailed solutions check out [our documentation.]
-(https://docs.streamlit.io/advanced_caching.html)
+(https://docs.streamlit.io/en/latest/advanced_caching.html)
             """
             % {"func_name": orig_exc.cached_func_name}
         ).strip("\n")

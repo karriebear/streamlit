@@ -1,18 +1,25 @@
 # Packages used to test things users may do with Streamlit.
-cffi
-matplotlib
-plotly
-chart-studio
-cx_oracle
 bokeh
+cffi
+chart-studio
+# 8.0.0 causes test_sqlalchemy_engine_2_oracle to fail.
+cx-Oracle<8.0.0
 graphviz
+keras
+matplotlib
 mysqlclient
+opencv-python
+plotly
+prometheus-client
 psycopg2-binary
 pydot
-tensorflow>=2.0.0rc3
+pyodbc
+# Tensorflow 2.x requires scipy==1.4.1.
+# Feel free to remove this dependency if the requirement is gone.
+scipy==1.4.1
 seaborn
 sqlalchemy
+# The > sign will skip rc versions.
+tensorflow>2.0.0rc3
 torch
-prometheus-client
-pyodbc
-opencv-python
+torchvision

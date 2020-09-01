@@ -20,9 +20,9 @@ import { shallow } from "enzyme"
 import { fromJS } from "immutable"
 import { WidgetStateManager } from "lib/WidgetStateManager"
 
-import TextInput, { Props } from "./TextInput"
 import { Input as UIInput } from "baseui/input"
 import { TextInput as TextInputProto } from "autogen/proto"
+import TextInput, { Props } from "./TextInput"
 
 jest.mock("lib/WidgetStateManager")
 
@@ -89,19 +89,6 @@ describe("TextInput widget", () => {
     expect(wrapper.find(UIInput).prop("disabled")).toBe(props.disabled)
   })
 
-  it("should show Enter instructions", () => {
-    // @ts-ignore
-    wrapper.find(UIInput).prop("onChange")({
-      target: {
-        value: "testing",
-      },
-    } as React.ChangeEvent<HTMLTextAreaElement>)
-
-    expect(wrapper.find("div.instructions").text()).toBe(
-      "Press Enter to apply"
-    )
-  })
-
   it("should set widget value on blur", () => {
     const props = getProps()
     const wrapper = shallow(<TextInput {...props} />)
@@ -160,5 +147,30 @@ describe("TextInput widget", () => {
     wrapper.find(UIInput).prop("onBlur")()
 
     expect(props.widgetMgr.setStringValue).toHaveBeenCalledTimes(1)
+  })
+
+  it("should limit the length if max_chars is passed", () => {
+    const props = getProps({
+      maxChars: 10,
+    })
+    const wrapper = shallow(<TextInput {...props} />)
+
+    // @ts-ignore
+    wrapper.find(UIInput).prop("onChange")({
+      target: {
+        value: "0123456789",
+      },
+    } as EventTarget)
+
+    expect(wrapper.find(UIInput).prop("value")).toBe("0123456789")
+
+    // @ts-ignore
+    wrapper.find(UIInput).prop("onChange")({
+      target: {
+        value: "0123456789a",
+      },
+    } as EventTarget)
+
+    expect(wrapper.find(UIInput).prop("value")).toBe("0123456789")
   })
 })

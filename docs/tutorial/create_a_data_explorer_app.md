@@ -1,7 +1,7 @@
 # Tutorial: Create a data explorer app
 
 If you've made it this far, chances are you've
-[installed Streamlit](https://docs.streamlit.io/#install-streamlit) and
+[installed Streamlit](https://docs.streamlit.io/en/latest/#install-streamlit) and
 run through the basics in our [get started guide](../getting_started.md). If
 not, now is a good time to take a look.
 
@@ -61,7 +61,7 @@ dataset for pickups and drop-offs in New York City.
    ```
 
    You'll notice that `load_data` is a plain old function that downloads some
-   date, puts it in a Pandas dataframe, and converts the date column from text
+   data, puts it in a Pandas dataframe, and converts the date column from text
    to datetime. The function accepts a single parameter (`nrows`), which
    specifies the number of rows that you want to load into the dataframe.
 

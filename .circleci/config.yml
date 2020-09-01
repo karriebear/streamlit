@@ -3,8 +3,21 @@
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2.1
-
+orbs:
+  slack: circleci/slack@3.4.2
 commands:
+  update-submodules:
+    steps:
+      - run:
+          # `git submodule update --remote` checks out the submodule repo's
+          # HEAD (as opposed to whatever commit is specified in the
+          # submodule). We want to ensure we're always testing against
+          # the most recent commit in our component-template repo.
+          name: Update submodules
+          command: |
+            git submodule init
+            git submodule update --remote
+
   pre-cache:
     steps:
       - run: &get_make_checksum
@@ -27,13 +40,22 @@ commands:
             fi
 
       - run: &create_python_cache_key
-          # Combine hashes of the Python interpreter and Pipfile plus today's
-          # date into a file whose checksum will key the Python environ. cache.
+          # Combine hashes of the Python interpreter, Pipfile, and today's
+          # date into a file whose checksum will key the Python virtualenv.
+          #
+          # This means that our virtualenv cache will expire each day. We do
+          # this because we are not using a lockfile to pin dependencies -
+          # instead, each time CircleCI rebuilds the virtualenv, it uses the
+          # latest compatible version of each dependency (which mirrors what
+          # happens when a user installs Streamlit locally). So we expire our
+          # virtualenv cache daily to prevent it from getting far out of sync
+          # with what a fresh Streamlit installation would look like.
           name: Create Python environment cache key
           command: |
-            md5sum $(which python) > ~/python_version.md5
-            md5sum lib/Pipfile >> ~/python_version.md5
-            date +%F >> ~/python_version.md5
+            md5sum $(which python) > ~/python_cache_key.md5
+            md5sum lib/Pipfile >> ~/python_cache_key.md5
+            md5sum lib/test-requirements.txt >> ~/python_cache_key.md5
+            date +%F >> ~/python_cache_key.md5
 
       - run: &create_yarn_cache_key
           name: Create Yarn cache key
@@ -45,22 +67,22 @@ commands:
       - restore_cache: &restore_virtualenv
           name: Restore virtualenv from cache
           keys:
-            - v12-python-venv-{{ checksum "~/python_version.md5" }}
+            - v13-python-venv-{{ checksum "~/python_cache_key.md5" }}
 
       - restore_cache: &restore_nvm
           name: Restore nvm and node_modules from cache
           keys:
-            - v12-nvm_node_modules-{{ checksum "~/yarn.lock.md5" }}
+            - v13-nvm_node_modules-{{ checksum "~/yarn.lock.md5" }}
 
       - restore_cache: &restore_make
           name: Restore make from cache
           keys:
-            - v12_make.bin-{{ checksum "~/make.md5" }}
+            - v13_make.bin-{{ checksum "~/make.md5" }}
 
       - restore_cache: &restore_dot
           name: Restore dot from cache
           keys:
-            - v12_dot.bin-{{ checksum "~/dot.md5" }}
+            - v13_dot.bin-{{ checksum "~/dot.md5" }}
 
   pre-make:
     steps:
@@ -116,43 +138,44 @@ commands:
             ${SUDO} apt-get install -y unixodbc-dev
 
       - run: &activate_virtualenv
-          name: Run make pipenv-lock and create virtualenv
+          name: Create virtualenv
           command: |
             echo 'Checking for virtualenv'
             if [ ! -d venv ] ; then
+              # The virtualenv was NOT restored from cache. Create a new one.
               python -m venv venv
               source venv/bin/activate
-              make setup
               pip install --upgrade pip
+              make setup
               make pipenv-install
               deactivate
             else
+              # The virtualenv WAS restored from cache. Don't create a new one.
               echo 'Virtualenv already exists, not creating'
             fi
+
+            # Add 'activate venv' to $BASH_ENV. This means that our venv will be active
+            # for the remainder of the job ($BASH_ENV is evaluated at each step).
             echo 'source venv/bin/activate' >> $BASH_ENV
 
       - run: &generate_protobufs
           name: Generate protobufs
           command: |
-            # There's a chance this file could be a cached version when
-            # the protobuf cache is restored, so checkout from github to
-            # make sure.
-            git checkout -- lib/streamlit/proto/__init__.py
-            if [ ! -e frontend/src/autogen/proto.js -o ! -e lib/streamlit/proto/DataFrame_pb2.py ] ; then
-              # install protobuf v3
-              ${SUDO} apt-get update -y
-              ${SUDO} apt-get install -y gnupg
-              echo "deb http://ppa.launchpad.net/maarten-fonville/protobuf/ubuntu trusty main" | ${SUDO} tee /etc/apt/sources.list.d/protobuf.list
-              ${SUDO} apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4DEA8909DC6A13A3
-              ${SUDO} apt-get update -y
-              ${SUDO} apt-get install -y protobuf-compiler
-              make protobuf
-            fi
+            # install protobuf v3
+            ${SUDO} apt-get update -y
+            ${SUDO} apt-get install -y gnupg
+            echo "deb http://ppa.launchpad.net/maarten-fonville/protobuf/ubuntu trusty main" | ${SUDO} tee /etc/apt/sources.list.d/protobuf.list
+            ${SUDO} apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4DEA8909DC6A13A3
+            ${SUDO} apt-get update -y
+            ${SUDO} apt-get install -y protobuf-compiler
+
+            # Generate protobufs
+            make protobuf
 
 workflows:
   circleci:
     jobs:
-      - python-3-5: # Oldest supported Python minor version.
+      - python-3-6: # Oldest supported Python minor version.
           filters:
             tags:
               only: /^([0-9]+\.){3}dev[0-9]+/ # 0.56.1.dev20201129
@@ -168,7 +191,7 @@ workflows:
               only: /^([0-9]+\.){3}dev[0-9]+/
       - nightly-release:
           requires:
-            - python-3-5
+            - python-3-6
             - python-3-8
             - cypress
           filters:
@@ -209,31 +232,17 @@ jobs:
       - checkout:
           name: Checkout Streamlit code
 
+      - update-submodules
+
       #################################################################
       # Pre Cache Steps
       #################################################################
       - pre-cache
 
-      - run:
-          # There is no lock file for the protobufs so we run a checksum
-          # across all the protos along with Python and the protobuf compilers
-          # and save that to a file to use as cache key.
-          name: Checksum all protobufs
-          command: |
-            md5sum proto/streamlit/proto/*.proto > ~/protobuf.md5
-            md5sum $(which python) >> ~/protobuf.md5
-            md5sum $(which protoc) >> ~/protobuf.md5
-            md5sum $(which protoc-gen-mypy) >> ~/protobuf.md5
-
       #################################################################
       # Restore from cache
       #################################################################
       - restore-from-cache
-
-      - restore_cache:
-          name: Restore protobufs from cache
-          keys:
-            - v12-protobuf-{{ checksum "~/protobuf.md5" }}
 
       #################################################################
       # Pre Make commands
@@ -242,13 +251,13 @@ jobs:
 
       - save_cache:
           name: Save make to cache
-          key: v12_make.bin-{{ checksum "~/make.md5" }}
+          key: v13_make.bin-{{ checksum "~/make.md5" }}
           paths:
             - make.bin
 
       - save_cache:
           name: Save dot to cache
-          key: v12_dot.bin-{{ checksum "~/dot.md5" }}
+          key: v13_dot.bin-{{ checksum "~/dot.md5" }}
           paths:
             - dot.bin
 
@@ -324,34 +333,34 @@ jobs:
             fi
 
       #################################################################
-      # Save cache for python virtualenv, node_modules, protobuf
+      # Save cache for python virtualenv and node_modules.
       #################################################################
       - save_cache:
           name: Save virtualenv to cache
-          key: v12-python-venv-{{ checksum "~/python_version.md5" }}
+          key: v13-python-venv-{{ checksum "~/python_cache_key.md5" }}
           paths:
             - venv
 
       - save_cache:
           name: Save nvm and node_modules to cache
-          key: v12-nvm_node_modules-{{ checksum "~/yarn.lock.md5" }}
+          key: v13-nvm_node_modules-{{ checksum "~/yarn.lock.md5" }}
           paths:
             - ~/.nvm
             - ~/.cache
 
-      - save_cache:
-          name: Save generated protobufs to cache
-          key: v12-protobuf-{{ checksum "~/protobuf.md5" }}
-          paths:
-            - frontend/src/autogen/proto.js
-            - lib/streamlit/proto
+      - when:
+          condition: <<pipeline.git.tag>>
+          steps:
+            - slack/status:
+                fail_only: true
+                failure_message: ":blobonfire: Nightly job failed on unit tests"
 
   # The following inherits from python-3-8. In a few cases, steps are skipped
   # based on the name of the current job (see, e.g., "Run frontend tests").
-  python-3-5:
+  python-3-6:
     <<: *job-template
     docker:
-      - image: circleci/python:3.5.9
+      - image: circleci/python:3.6.5
 
   create-tag:
     docker:
@@ -362,6 +371,8 @@ jobs:
     steps:
       - checkout:
           name: Checkout Streamlit code
+
+      - update-submodules
 
       - pre-cache
       - restore-from-cache
@@ -378,14 +389,15 @@ jobs:
 
       - run:
           name: Create tag
+          # TODO move git commands into script
           command: |
+            git config user.email "jonathan@streamlit.io"
+            git config user.name "CircleCI"
+
             TAG="$(./scripts/pypi_nightly_create_tag.py)"
 
             ./scripts/update_version.py $TAG
             ./scripts/update_name.py streamlit-nightly
-
-            git config user.email "jonathan@streamlit.io"
-            git config user.name "CircleCI"
 
             git add lib/setup.py
             git add docs/troubleshooting/sanity-checks.md
@@ -399,6 +411,10 @@ jobs:
             git tag -a $TAG -m "Streamlit nightly $TAG"
             git push origin $TAG
 
+      - slack/status:
+          fail_only: true
+          failure_message: ":blobonfire: Nightly job failed to create a tag"
+
   nightly-release:
     docker:
       - image: circleci/python:3.8.1
@@ -410,6 +426,8 @@ jobs:
     steps:
       - checkout:
           name: Checkout Streamlit code
+
+      - update-submodules
 
       - pre-cache
       - restore-from-cache
@@ -440,18 +458,22 @@ jobs:
           no_output_timeout: 2h
           command: |
             ${SUDO} apt-get install rsync
-            make frontend
-            make install
-            make wheel
+            make package
 
       - run:
           name: upload to pypi
           command: |
             make distribute
 
+      - slack/status:
+          fail_only: true
+          failure_message: ":blobonfire: Nightly job failed to release"
+
   cypress:
     docker:
       - image: circleci/python:3.7.4-stretch
+
+    resource_class: xlarge
 
     working_directory: ~/repo
 
@@ -465,8 +487,8 @@ jobs:
       - checkout:
           name: Checkout Streamlit code
 
-      # NOTE restore protobuf from cache wasn't
-      # working so generating protobufs instead.
+      - update-submodules
+
       - pre-cache
       - restore-from-cache
       - pre-make
@@ -481,12 +503,19 @@ jobs:
       - run:
           name: Install Cypress dependencies
           command: |
-            ${SUDO} apt-get install -y xvfb libgtk2.0-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2
+            ${SUDO} apt-get install -y xvfb libgtk2.0-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 jq curl
+
+      - run:
+          name: Init config
+          command: |
+            mkdir ~/.streamlit
+            MAPBOX_TOKEN=$(curl -sS https://data.streamlit.io/tokens.json | jq -r '.["mapbox-localhost"]')
+            echo '[mapbox]' >  ~/.streamlit/config.toml
+            echo 'token = "'$MAPBOX_TOKEN'"' >> ~/.streamlit/config.toml
 
       - run:
           name: Init credentials
           command: |
-            mkdir ~/.streamlit
             echo '[general]' >  ~/.streamlit/credentials.toml
             echo 'email = "test@streamlit.io"' >> ~/.streamlit/credentials.toml
 
@@ -520,3 +549,10 @@ jobs:
 
       - store_artifacts: &store_snapshots
           path: frontend/cypress/snapshots
+
+      - when:
+          condition: <<pipeline.git.tag>>
+          steps:
+            - slack/status:
+                fail_only: true
+                failure_message: ":blobonfire: Nightly job failed on E2E tests"
