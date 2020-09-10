@@ -57,7 +57,7 @@ export const colors = {
   disabledColor: SCSS_VARS.$gray,
 }
 
-const fontStyles = {
+export const fontStyles = {
   fontFamily: fontFamilySans,
   fontSize: fontSizeBase,
   fontWeight: "normal",
