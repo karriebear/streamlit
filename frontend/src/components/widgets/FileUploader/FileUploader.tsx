@@ -50,6 +50,30 @@ interface State {
   maxSizeBytes: number
 }
 
+const StyledDropzoneSection = styled("section", {
+  ":focus": {
+    outline: "none",
+    boxShadow: `0 0 0 1px ${colors.primary}`,
+  },
+  padding: variables.spacer,
+  backgroundColor: colors.grayLightest,
+  borderRadius: variables.borderRadius,
+  alignItems: "center",
+  display: "flex",
+  "@media (max-width: 880px)": {
+    display: "none",
+  },
+})
+
+const StyledInstructions = styled("div", {
+  marginRight: "auto",
+  alignItems: "center",
+  display: "flex",
+  "@media (max-width: 880px)": {
+    display: "none",
+  },
+})
+
 class FileUploader extends React.PureComponent<Props, State> {
   private currentUploadCanceller?: CancelTokenSource
   public constructor(props: Props) {
@@ -278,30 +302,11 @@ class FileUploader extends React.PureComponent<Props, State> {
     const label: string = element.get("label")
     const multipleFiles: boolean = element.get("multipleFiles")
     const acceptedExtensions: string[] = element.get("type").toArray()
-
-    const StyledDropzoneSection = styled("section", {
-      ":focus": {
-        outline: "none",
-        boxShadow: `0 0 0 1px ${colors.primary}`,
-      },
-      padding: variables.spacer,
-      backgroundColor: colors.grayLightest,
-      borderRadius: variables.borderRadius,
-      alignItems: "center",
-      display: "flex",
-      "@media (max-width: 880px)": {
-        display: "none",
-      },
-    })
-
-    const StyledInstructions = styled("div", {
-      marginRight: "auto",
-      alignItems: "center",
-      display: "flex",
-      "@media (max-width: 880px)": {
-        display: "none",
-      },
-    })
+    const mimes = acceptedExtensions.length
+      ? acceptedExtensions.map(
+          (value: string): string => MimeTypes.lookup(value) || `.${value}`
+        )
+      : undefined
 
     return (
       <div className="Widget stFileUploader">
@@ -314,14 +319,7 @@ class FileUploader extends React.PureComponent<Props, State> {
         <Dropzone
           onDrop={this.dropHandler}
           multiple={multipleFiles}
-          accept={
-            acceptedExtensions.length
-              ? acceptedExtensions.map(
-                  (value: string): string =>
-                    MimeTypes.contentType(value) || `.${value}`
-                )
-              : undefined
-          }
+          accept={mimes}
           maxSize={maxSizeBytes}
           disabled={disabled}
         >

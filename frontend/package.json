@@ -162,6 +162,7 @@
     "typescript": "^3.8.3"
   },
   "resolutions": {
+    "attr-accept": "karriebear/attr-accept",
     "bl": "^2.2.1",
     "dot-prop": "^4.2.1",
     "esm": "^3.1.0",
