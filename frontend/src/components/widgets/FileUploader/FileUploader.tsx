@@ -20,7 +20,6 @@ import axios, { CancelTokenSource } from "axios"
 import Dropzone, { FileRejection } from "react-dropzone"
 import { MaterialIcon } from "components/shared/Icon"
 import { Map as ImmutableMap } from "immutable"
-import MimeTypes from "mime-types"
 import { styled } from "styletron-react"
 
 import { ExtendedFile, FileStatuses, getSizeDisplay } from "lib/FileHelper"
@@ -302,11 +301,6 @@ class FileUploader extends React.PureComponent<Props, State> {
     const label: string = element.get("label")
     const multipleFiles: boolean = element.get("multipleFiles")
     const acceptedExtensions: string[] = element.get("type").toArray()
-    const mimes = acceptedExtensions.length
-      ? acceptedExtensions.map(
-          (value: string): string => MimeTypes.lookup(value) || `.${value}`
-        )
-      : undefined
 
     return (
       <div className="Widget stFileUploader">
@@ -319,7 +313,9 @@ class FileUploader extends React.PureComponent<Props, State> {
         <Dropzone
           onDrop={this.dropHandler}
           multiple={multipleFiles}
-          accept={mimes}
+          accept={acceptedExtensions.map(
+            (value: string): string => `.${value}`
+          )}
           maxSize={maxSizeBytes}
           disabled={disabled}
         >
