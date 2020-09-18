@@ -14,61 +14,80 @@
  * limitations under the License.
  */
 
-@import "src/assets/css/variables";
+@import "src/assets/css/core";
 
-.stFileUploader {
-  // Important: these must match the ones in widgetTheme.ts!
-
-  .uploadStatus {
-    align-items: center;
-    background-color: $gray-lightest;
-    border-color: transparent;
-    border-radius: $border-radius;
-    border-width: 1px;
+.sidebar .stFileUploader {
+  .fileUploadDropzone {
     display: flex;
     flex-direction: column;
-    font-size: $font-size-sm;
-    height: 4.25rem;
-    justify-content: center;
-    line-height: 1.25;
-    width: 100%;
+    align-items: flex-start;
+    background: $white;
 
-    .btn {
-      color: $primary;
-      font-size: $font-size-sm;
-      margin: 0.25em 0;
-      padding: 0.125em 0.5em;
-      transition: none;
+    .stButton {
+      margin-top: $spacer;
+    }
 
-      &:hover {
-        color: $primary;
-      }
+    .fileUploaderIcon {
+      display: none;
     }
   }
 
-  .uploadOverlay {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    left: 0;
-    line-height: 1.25;
-    padding-top: 0.75rem;
-    pointer-events: none;
-    position: absolute;
-    right: 0;
+  .uploadedFiles .uploadedFile {
+    max-width: inherit;
+    flex: 1;
+  }
+}
+
+.stFileUploader {
+  small {
+    color: $gray-dark;
+    font-size: $font-size-sm;
+    height: $font-size-sm;
+    line-height: $font-size-sm;
   }
 
-  .uploadStatus .body,
-  .uploadOverlay .body {
-    box-sizing: border-box;
-    color: $gray-dark;
-    display: block;
-    flex-direction: column;
-    font-family: "IBM Plex Sans", sans-serif;
-    font-size: $font-size-sm;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .disabled {
+    &,
+    small {
+      color: $gray;
+    }
+  }
+
+  .fileUploaderIcon {
+    color: $secondary;
+    margin-right: $spacer;
+  }
+
+  .fileUploadDropzone {
+    padding-right: 2 * $spacer;
+  }
+
+  .fileIcon {
+    color: $gray;
+    display: flex;
+    padding: 0 $spacer/4;
+  }
+
+  .uploadedFiles {
+    left: 0;
+    line-height: $line-height-tight;
+    padding-top: 0.75rem;
+    right: 0;
+    padding-left: $spacer;
+    padding-right: $spacer * 2;
+
+    .uploadedFile {
+      display: flex;
+      align-items: center;
+      margin-bottom: $spacer * 0.25;
+    }
+
+    .uploadedFileData {
+      display: flex;
+      align-items: baseline;
+      flex: 1;
+      padding-left: $spacer;
+      overflow: hidden;
+    }
   }
 }

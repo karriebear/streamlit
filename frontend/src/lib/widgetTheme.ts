@@ -20,7 +20,6 @@ import { createTheme, lightThemePrimitives } from "baseui"
 import { PLACEMENT as POPOVER_PLACEMENT } from "baseui/popover"
 import { logMessage } from "lib/log"
 import { SCSS_VARS } from "autogen/scssVariables"
-import { FileUploaderOverrides, StyleProps } from "baseui/file-uploader"
 
 const fontFamilyMono = SCSS_VARS["$font-family-monospace"]
 const fontFamilySans = SCSS_VARS["$font-family-sans-serif"]
@@ -31,9 +30,16 @@ const borderRadius = SCSS_VARS["$border-radius"]
 const labelFontSize = SCSS_VARS["$font-size-sm"]
 const lineHeightBase = SCSS_VARS["$line-height-base"]
 const lineHeightTight = SCSS_VARS["$line-height-tight"]
+
+const spacer = SCSS_VARS["$spacer"]
 const smallTextMargin = SCSS_VARS["$m2-3-font-size-sm"]
 const textMargin = SCSS_VARS["$font-size-sm"]
 const tinyTextMargin = SCSS_VARS["$m1-2-font-size-sm"]
+
+export const variables = {
+  borderRadius,
+  spacer,
+}
 
 // Colors
 export const colors = {
@@ -47,13 +53,22 @@ export const colors = {
   primary: SCSS_VARS.$primary,
   primaryA50: SCSS_VARS["$primary-a50"],
   transparent: "transparent",
+  disabledBg: SCSS_VARS.$disabled,
+  disabledColor: SCSS_VARS.$gray,
 }
 
-const fontStyles = {
+export const fontStyles = {
   fontFamily: fontFamilySans,
   fontSize: fontSizeBase,
   fontWeight: "normal",
   lineHeight: lineHeightBase,
+}
+
+export const sizes = {
+  small: "sm",
+  medium: "md",
+  large: "lg",
+  "extra-large": "xl",
 }
 
 export const sliderOverrides = {
@@ -134,92 +149,6 @@ export const sliderOverrides = {
   InnerTrack: {
     style: ({ $disabled }: { $disabled: boolean }) =>
       $disabled ? { background: colors.grayLighter } : {},
-  },
-}
-
-export const fileUploaderOverrides: FileUploaderOverrides<StyleProps> = {
-  // Important: these values must match the ones in FileUploader.scss!
-  FileDragAndDrop: {
-    style: ({
-      $theme,
-      $isDragActive,
-    }: {
-      $theme: Theme
-      $isDragActive: boolean
-    }) => ({
-      borderRadius,
-      display: "flex",
-      color: colors.grayDark,
-      fontSize: fontSizeSm,
-      lineHeight: lineHeightTight,
-      flexDirection: "column",
-      justifyContent: "center",
-      paddingTop: "0.25rem",
-      paddingBottom: "0.25rem",
-      paddingLeft: "0.25rem",
-      paddingRight: "0.25rem",
-      height: "4.25rem",
-      borderColor: $isDragActive ? colors.primary : colors.transparent,
-      backgroundColor: $isDragActive
-        ? colors.primaryA50
-        : $theme.colors.mono200,
-      borderStyle: "solid",
-      borderWidth: "1px",
-      ":focus": {
-        outline: 0,
-        borderColor: colors.primary,
-      },
-    }),
-  },
-  ContentSeparator: {
-    style: {
-      fontSize: fontSizeSm,
-      color: colors.grayDark,
-      lineHeight: lineHeightTight,
-      display: "",
-    },
-  },
-  ContentMessage: {
-    style: {
-      fontSize: fontSizeSm,
-      color: colors.grayDark,
-      lineHeight: lineHeightTight,
-      display: "",
-    },
-  },
-  ButtonComponent: {
-    props: {
-      overrides: {
-        BaseButton: {
-          style: {
-            color: colors.primary,
-            fontSize: fontSizeSm,
-            lineHeight: lineHeightTight,
-            paddingBottom: 0,
-            paddingLeft: "0.25em",
-            paddingRight: "0.25em",
-            paddingTop: 0,
-            textTransform: "lowercase",
-            ":hover": {
-              backgroundColor: colors.transparent,
-              textDecoration: "underline",
-            },
-            ":active": {
-              backgroundColor: colors.transparent,
-              textDecoration: "underline",
-            },
-            ":disabled": {
-              backgroundColor: colors.transparent,
-              color: colors.grayDark,
-            },
-            ":focus": {
-              outline: 0,
-              backgroundColor: colors.transparent,
-            },
-          },
-        },
-      },
-    },
   },
 }
 
@@ -459,7 +388,7 @@ const mainThemePrimitives = {
 // Theme overrides.
 // NOTE: A lot of the properties we can override here don't seem to actually
 // be used anywhere in BaseWeb's source. Will report a bug about it.
-const themeOverrides = {
+export const themeOverrides = {
   borders: {
     radius100: borderRadius,
     radius200: borderRadius,

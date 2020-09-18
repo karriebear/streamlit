@@ -23,6 +23,7 @@ from streamlit import type_util
 from streamlit.proto.Audio_pb2 import Audio as AudioProto
 from streamlit.proto.Video_pb2 import Video as VideoProto
 from streamlit.media_file_manager import media_file_manager
+from streamlit.uploaded_file_manager import UploadedFile
 
 
 class MediaMixin:
@@ -161,7 +162,7 @@ def _marshall_av_media(coordinates, proto, data, mimetype):
     # Assume bytes; try methods until we run out.
     if isinstance(data, bytes):
         pass
-    elif isinstance(data, io.BytesIO):
+    elif isinstance(data, io.BytesIO) or isInstance(data, UploadedFile):
         data.seek(0)
         data = data.getvalue()
     elif isinstance(data, io.RawIOBase) or isinstance(data, io.BufferedReader):
