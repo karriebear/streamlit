@@ -23,6 +23,7 @@ import { LightTheme, BaseProvider } from "baseui"
 import { Provider as StyletronProvider } from "styletron-react"
 import { SCSS_VARS } from "autogen/scssVariables"
 import AppWithScreencast from "./App"
+import "lib/polyfills"
 
 const engine = new Styletron({ prefix: "st-" })
 const popupZIndex = Number(SCSS_VARS["$z-index-popup-menu"])
