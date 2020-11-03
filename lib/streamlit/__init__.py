@@ -238,7 +238,7 @@ def set_option(key, value):
     )
 
 
-def experimental_show(*args):
+def beta_show(*args):
     """Write arguments and *argument names* to your app for debugging purposes.
 
     Show() has similar properties to write():
@@ -246,7 +246,7 @@ def experimental_show(*args):
         1. You can pass in multiple arguments, all of which will be debugged.
         2. It returns None, so it's "slot" in the app cannot be reused.
 
-    Note: This is an experimental feature. See
+    Note: This is an beta feature. See
     https://docs.streamlit.io/en/latest/api.html#pre-release-features for more information.
 
     Parameters
@@ -261,7 +261,7 @@ def experimental_show(*args):
     ...     'first column': [1, 2, 3, 4],
     ...     'second column': [10, 20, 30, 40],
     ... }))
-    >>> st.experimental_show(dataframe)
+    >>> st.beta_show(dataframe)
 
     Notes
     -----
@@ -307,7 +307,7 @@ def experimental_show(*args):
         exception(exc)
 
 
-def experimental_get_query_params():
+def beta_get_query_params():
     """Return the query parameters that is currently showing in the browser's URL bar.
 
     Returns
@@ -323,7 +323,7 @@ def experimental_get_query_params():
     `http://localhost:8501/?show_map=True&selected=asia&selected=america`.
     Then, you can get the query parameters using the following:
 
-    >>> st.experimental_get_query_params()
+    >>> st.beta_get_query_params()
     {"show_map": ["True"], "selected": ["asia", "america"]}
 
     Note that the values in the returned dict are *always* lists. This is
